@@ -13,6 +13,30 @@ let muted = (() => {
 
 const listeners = new Set<(m: boolean) => void>()
 
+// A real crowd recording (public/sounds/crowd-cheer.mp3) layered into the big
+// cheers. It loads after the first sound plays; until then, or if it fails,
+// the synthesized cheer is used on its own.
+const CROWD_URL = `${import.meta.env.BASE_URL}sounds/crowd-cheer.mp3`
+const samples: { cheer: AudioBuffer | null; loading: Promise<void> | null } = { cheer: null, loading: null }
+
+function loadSamples(ac: AudioContext): Promise<void> {
+  samples.loading ??= fetch(CROWD_URL)
+    .then((r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      return r.arrayBuffer()
+    })
+    .then((data) => ac.decodeAudioData(data))
+    .then((buf) => { samples.cheer = buf })
+    .catch(() => { samples.loading = null }) // try again next time
+  return samples.loading
+}
+
+/** Starts loading the crowd recording (used by the preview script). */
+export function preloadSamples(): Promise<void> {
+  const ac = audio()
+  return ac ? loadSamples(ac) : Promise.resolve()
+}
+
 export function isMuted() { return muted }
 export function setMuted(m: boolean) {
   muted = m
@@ -41,6 +65,7 @@ function audio(): AudioContext | null {
       for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1
     }
     if (ctx.state === 'suspended') void ctx.resume()
+    if (!samples.cheer) void loadSamples(ctx)
     return ctx
   } catch {
     return null
@@ -181,11 +206,41 @@ function claps(count: number, spread: number, at = 0, vol = 0.07) {
 }
 
 /**
- * Crowd cheering. level 1 = nice play, 2 = big play, 3 = the place erupts.
- * Roar + "whoo" voices + applause, all scaled by level.
+ * Plays the recorded crowd with a quick swell and a fade-out. Each play
+ * starts at a slightly different spot and speed so it never sounds identical.
  */
-function cheer(level: number, at = 0) {
+function crowdSample(vol: number, dur: number, at = 0): boolean {
+  const ac = audio()
+  const buf = samples.cheer
+  if (!ac || !master || !buf) return false
+  const t0 = ac.currentTime + at
+  const src = ac.createBufferSource()
+  src.buffer = buf
+  src.playbackRate.value = rnd(0.95, 1.05)
+  const g = ac.createGain()
+  g.gain.setValueAtTime(0.0001, t0)
+  g.gain.exponentialRampToValueAtTime(vol, t0 + 0.12)
+  g.gain.setValueAtTime(vol, t0 + dur * 0.45)
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur)
+  src.connect(g).connect(master)
+  src.start(t0, rnd(0, 0.35))
+  src.stop(t0 + dur + 0.05)
+  return true
+}
+
+/**
+ * Crowd cheering. level 1 = nice play, 2 = big play, 3 = the place erupts.
+ * Levels 2-3 are built on the real crowd recording, with the synth roar and
+ * claps mixed underneath. Level 1 (and any cheer before the recording has
+ * loaded) is fully synthesized.
+ */
+function cheer(level: number, at = 0, long = false) {
   const dur = 1.3 + level * 0.7
+  if (level >= 2 && crowdSample(level === 2 ? 0.42 : 0.72, (long ? 5.2 : 2.4 + (level - 2) * 1.2), at)) {
+    crowd(0.25 + level * 0.15, dur, at)
+    claps(8 + level * 14, dur * 0.85, at + 0.15, 0.035 + level * 0.01)
+    return
+  }
   crowd(0.45 + level * 0.35, dur, at)
   const voices = 3 + level * 4
   for (let i = 0; i < voices; i++) {
@@ -266,8 +321,8 @@ export const sound = {
   touchdown() {
     airhorn(0, 0.5)
     airhorn(0.6, 1.1)
-    cheer(3)
-    cheer(2, 1.6)
+    cheer(3, 0, true)
+    claps(40, 3, 1.4, 0.05)
     CHIME.forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.5, vol: 0.12, at: 0.2 + i * 0.09 }))
   },
   fieldGoal() {

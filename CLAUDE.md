@@ -64,7 +64,8 @@ src/engine/schedule.ts   LAUNCH_DATE, time zone, seeded daily prompt schedule
 src/engine/match.ts      Answer matching: normalize, aliases, surnames, typo tolerance
 src/engine/storage.ts    localStorage: in-progress drive, stats, streaks, player id
 src/lib/backend.ts       Supabase client (optional) for submit + score distribution
-src/lib/sound.ts         Synthesized sound effects (Web Audio, no files) + mute toggle (dd:sound)
+src/lib/sound.ts         Sound effects (Web Audio synth + one crowd recording) + mute toggle (dd:sound)
+public/sounds/           crowd-cheer.mp3, the recorded crowd used in big cheers
 src/lib/fx.ts            Effects bus: fx.confetti / fx.flash / fx.quake (skipped for reduced motion)
 src/lib/useCountUp.ts    Scoreboard-style number tick-up hook
 src/components/Effects.tsx  Full-screen confetti canvas + flash overlay, mounted once in App
@@ -142,7 +143,7 @@ When a name is picked, update: `GAME_NAME` / `GAME_SUBTITLE` / `SHARE_URL` in `s
 ## Feel: sound and effects
 
 - Sounds (`src/lib/sound.ts`): button click, READY/SET/HUT cadence, whistle at the snap, ticks in the last 5 seconds, thud on a wrong answer, buzzer on delay of game, and touchdown / field goal / punt stingers on the results screen. Mute toggle sits top right.
-- Crowd: correct answers get a chime (one note per tier) plus a crowd that scales with rarity: Checkdown silent, Slant light applause, Chunk Play a cheer, Deep Ball a big cheer, House Call the whole stadium plus an air horn. Turnover on Downs gets a short buzzer and boos. Crowd sounds are built from noise + vowel-filtered "voices" + claps (`cheer()`, `boo()`, `claps()`).
+- Crowd: correct answers get a chime (one note per tier) plus a crowd that scales with rarity: Checkdown silent, Slant light applause, Chunk Play a cheer, Deep Ball a big cheer, House Call the whole stadium plus an air horn. Turnover on Downs gets a short buzzer and boos. Chunk Play and the boos are fully synthesized (noise + vowel-filtered "voices" + claps). Deep Ball, House Call, Touchdown and Field Goal are built on a real crowd recording, `public/sounds/crowd-cheer.mp3` (Leo supplied it; trimmed to 7s, normalized to -16 LUFS), with the synth roar, claps and air horn mixed underneath. The recording loads after the first sound plays; if it hasn't loaded or fails, `cheer()` falls back to the synth-only version.
 - Crowd on screen (`fx.crowd`): on a cheer the dark drive overlay lifts, the stands bounce and camera flashes fire; on boos the stands dim and the flashes stop.
 - Visuals: stadium lights flicker on, haze beams, crowd camera flashes, title slam, hero button shine, score count-up, ball arc and "+N" yard pop, red vignette when the clock is under 5, confetti for Chunk Play and up (footballs on House Call), screen shake on House Call and Touchdown.
 - The results celebration only plays right after a drive ends (`celebrate` in App), not when reopening a finished drive.
