@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { GAME_NAME, GAME_SUBTITLE } from './config'
 import { Drive, totals, type Session } from './components/Drive'
+import { Effects } from './components/Effects'
 import { HowToPlay } from './components/HowToPlay'
 import { Results } from './components/Results'
 import { dateForDrive, driveNumber, getPrompt, promptsForDrive, randomPractice, todayKey } from './engine/schedule'
@@ -10,6 +11,7 @@ import {
 } from './engine/storage'
 import { driveOutcome, PLAY_CLOCK_SECONDS, PLAYS_PER_DRIVE } from './engine/tiers'
 import { submitDrive } from './lib/backend'
+import { isMuted, onMuteChange, setMuted, sound } from './lib/sound'
 import type { PromptDef } from './data/types'
 
 type View = 'home' | 'drive' | 'results'
@@ -38,6 +40,17 @@ export default function App() {
   const [active, setActive] = useState<Active | null>(null)
   const [stats, setStats] = useState<Stats>(() => loadStats())
   const [help, setHelp] = useState(false)
+  // True only right after a drive ends, so the results celebration plays once.
+  const [celebrate, setCelebrate] = useState(false)
+
+  // A soft click on every button.
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if ((e.target as HTMLElement).closest?.('.btn, .corner-btn')) sound.click()
+    }
+    document.addEventListener('click', onClick)
+    return () => document.removeEventListener('click', onClick)
+  }, [])
 
   const saved = loadDrive(today)
   const dailyDone = Boolean(saved && (saved.finished || saved.results.length >= PLAYS_PER_DRIVE))
@@ -49,6 +62,7 @@ export default function App() {
     const prompts = s ? (s.promptIds.map(getPrompt).filter(Boolean) as PromptDef[]) : dailyPrompts
     const state = s ?? freshState(today, driveNo, prompts)
     setActive({ session: { mode: 'daily', label: `DRIVE #${driveNo}`, prompts }, state })
+    setCelebrate(false)
     setView(state.finished || state.results.length >= PLAYS_PER_DRIVE ? 'results' : 'drive')
     if (!hasSeenHelp()) setHelp(true)
   }, [today, driveNo, dailyPrompts])
@@ -58,13 +72,15 @@ export default function App() {
     const label = replay ? `DRIVE #${replay}` : 'PRACTICE'
     const date = replay ? dateForDrive(replay) : today
     setActive({ session: { mode: 'practice', label, prompts }, state: freshState(date, replay ?? 0, prompts) })
+    setCelebrate(false)
     setView('drive')
   }, [today])
 
   useEffect(() => {
     const route = () => {
       const n = hashDrive()
-      if (n) startPractice(n)
+      // Only past or current drives can be replayed, so future prompts stay secret.
+      if (n && n <= driveNumber(todayKey())) startPractice(n)
       else if (window.location.hash === '#practice') startPractice()
     }
     route()
@@ -80,6 +96,7 @@ export default function App() {
       setStats(recordFinishedDrive(s.date, score, driveOutcome(yards).kind === 'td'))
       void submitDrive({ date: s.date, player: playerId(), score, yards, plays: s.results })
     }
+    setCelebrate(true)
     setView('results')
   }, [active])
 
@@ -115,6 +132,7 @@ export default function App() {
             prompts={active.session.prompts}
             label={active.session.label}
             mode={active.session.mode}
+            celebrate={celebrate}
             stats={active.session.mode === 'daily' ? stats : undefined}
             onHome={goHome}
             onPractice={() => startPractice()}
@@ -124,7 +142,9 @@ export default function App() {
       {view !== 'home' && (
         <button className="corner-btn" onClick={goHome} aria-label="Back to home">◀ HOME</button>
       )}
+      <SoundToggle />
       {help && <HowToPlay onClose={closeHelp} />}
+      <Effects />
     </div>
   )
 }
@@ -169,13 +189,46 @@ function Home({ driveNo, streak, done, inProgress, onStart, onPractice, onHelp }
   )
 }
 
+function SoundToggle() {
+  const [muted, setM] = useState(isMuted)
+  useEffect(() => onMuteChange(setM), [])
+  return (
+    <button
+      className={`corner-btn sound-btn ${muted ? 'off' : ''}`}
+      onClick={() => setMuted(!muted)}
+      aria-label={muted ? 'Turn sound on' : 'Mute sound'}
+      aria-pressed={!muted}
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor" />
+        {muted
+          ? <path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          : <path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />}
+      </svg>
+      <span>{muted ? 'OFF' : 'ON'}</span>
+    </button>
+  )
+}
+
+// Camera flashes popping in the crowd. Positions are fixed so they don't jump between renders.
+const FLASHBULBS = Array.from({ length: 26 }, (_, i) => {
+  const r = (n: number) => ((Math.sin(i * 12.9898 + n * 78.233) * 43758.5453) % 1 + 1) % 1
+  return { left: `${(r(1) * 100).toFixed(1)}%`, top: `${(r(2) * 100).toFixed(1)}%`, delay: `${(r(3) * 9).toFixed(2)}s`, dur: `${(6 + r(4) * 7).toFixed(2)}s` }
+})
+
 function Stadium() {
   return (
     <div className="stadium" aria-hidden="true">
       <div className="sky" />
+      <div className="beam left" />
+      <div className="beam right" />
       <div className="lights left" />
       <div className="lights right" />
-      <div className="crowd" />
+      <div className="crowd">
+        {FLASHBULBS.map((f, i) => (
+          <span key={i} className="flashbulb" style={{ left: f.left, top: f.top, animationDelay: f.delay, animationDuration: f.dur }} />
+        ))}
+      </div>
       <div className="field-perspective">
         <div className="field-plane" />
       </div>

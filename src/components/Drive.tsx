@@ -4,6 +4,9 @@ import { matchAnswer, normalize } from '../engine/match'
 import { ensureAnswers } from '../data/team-prompts'
 import { saveDrive, type DriveState, type PlayResult } from '../engine/storage'
 import { DOWNS_PER_PLAY, MISS, PLAY_CLOCK_SECONDS, TIERS } from '../engine/tiers'
+import { fx } from '../lib/fx'
+import { sound } from '../lib/sound'
+import { useCountUp } from '../lib/useCountUp'
 import { FieldStrip } from './FieldStrip'
 import { RouteArt } from './RouteArt'
 import { Scoreboard } from './Scoreboard'
@@ -85,6 +88,8 @@ export function Drive({ session, initial, onComplete }: {
   // Play clock expired.
   useEffect(() => {
     if (phase === 'live' && msLeft <= 0 && prompt) {
+      sound.buzzer()
+      fx.flash('#ff3b30', 0.22)
       finishPlay({ promptId: prompt.id, outcome: 'delay', points: 0, yards: 0, guesses })
     }
   }, [phase, msLeft, prompt, guesses, finishPlay])
@@ -92,6 +97,15 @@ export function Drive({ session, initial, onComplete }: {
   useEffect(() => {
     if (phase === 'live') inputRef.current?.focus()
   }, [phase, index])
+
+  function celebrateHit(tier: number, color: string) {
+    sound.hit(tier)
+    if (tier >= 3) {
+      fx.confetti({ colors: [color, '#f2efe4', '#ffb627'], count: tier === 3 ? 40 : tier === 4 ? 80 : 150, y: 0.42, power: 0.7 + tier * 0.12, footballs: tier === 5 })
+    }
+    if (tier === 5) { fx.flash(color, 0.4); fx.quake() }
+    else if (tier === 4) fx.flash(color, 0.2)
+  }
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -101,6 +115,7 @@ export function Drive({ session, initial, onComplete }: {
     const res = matchAnswer(prompt, raw)
     if (res.kind === 'hit') {
       const t = TIERS[res.answer.tier]
+      celebrateHit(t.id, t.color)
       finishPlay({ promptId: prompt.id, outcome: 'hit', answerName: res.answer.name, input: raw, tier: t.id, points: t.points, yards: t.yards, guesses: [...guesses, raw] })
       return
     }
@@ -120,11 +135,15 @@ export function Drive({ session, initial, onComplete }: {
     }
     const nextGuesses = [...guesses, raw]
     if (nextGuesses.length >= DOWNS_PER_PLAY) {
+      sound.buzzer()
+      fx.flash('#ff3b30', 0.22)
       finishPlay({ promptId: prompt.id, outcome: 'turnover', points: 0, yards: 0, guesses: nextGuesses })
       return
     }
     persist({ ...state, current: { ...cur, guesses: nextGuesses } })
     setInput('')
+    sound.miss()
+    fx.flash('#ff3b30', 0.14)
     setShaking(true)
     setTimeout(() => setShaking(false), 420)
     setNotice({ text: `"${raw}" isn't on the board. ${DOWN_LABELS[nextGuesses.length]} down.`, tone: 'miss' })
@@ -143,6 +162,23 @@ export function Drive({ session, initial, onComplete }: {
   const clockPct = Math.max(0, Math.min(1, msLeft / (PLAY_CLOCK_SECONDS * 1000)))
   const presnapWord = presnapLeft > 1800 ? 'READY' : presnapLeft > 900 ? 'SET' : 'HUT!'
   const isLast = state.results.length >= session.prompts.length
+  const urgent = ready && phase === 'live' && clockSecs <= 5
+
+  // Cadence on READY / SET / HUT, whistle at the snap.
+  const prevPhase = useRef(phase)
+  useEffect(() => {
+    if (ready && phase === 'presnap') sound.cadence(presnapWord)
+  }, [ready, phase, presnapWord])
+  useEffect(() => {
+    if (prevPhase.current === 'presnap' && phase === 'live') sound.whistle()
+    prevPhase.current = phase
+  }, [phase])
+  // Ticks for the last five seconds.
+  useEffect(() => {
+    if (ready && phase === 'live' && clockSecs > 0 && clockSecs <= 5) sound.tick(clockSecs)
+  }, [ready, phase, clockSecs])
+
+  const shownPts = useCountUp(revealing?.points ?? 0, 650, 0)
 
   const revealMeta = useMemo(() => {
     if (!revealing) return null
@@ -157,7 +193,12 @@ export function Drive({ session, initial, onComplete }: {
   return (
     <div className="drive">
       <Scoreboard results={state.results} current={revealing ? index - 1 : index} score={score} yards={yards} />
-      <FieldStrip yards={yards} compact />
+      <FieldStrip
+        yards={yards}
+        compact
+        gain={revealing ? { yards: revealing.yards, color: revealMeta?.color ?? '#fff', key: index } : undefined}
+      />
+      {urgent && <div className="urgent-vignette" aria-hidden="true" />}
 
       {!ready && (
         <section className="play-card loading-card">
@@ -173,7 +214,7 @@ export function Drive({ session, initial, onComplete }: {
       )}
 
       {ready && phase !== 'reveal' && prompt && (
-        <section className={`play-card ${phase} ${shaking ? 'shaking' : ''}`} key={index}>
+        <section className={`play-card ${phase} ${shaking ? 'shaking' : ''} ${urgent ? 'urgent' : ''}`} key={index}>
           <div className="play-card-top">
             <span className="tag">{session.label} · PLAY {index + 1}</span>
             <span className="tag tag-cat">{prompt.tag}</span>
@@ -223,12 +264,13 @@ export function Drive({ session, initial, onComplete }: {
       )}
 
       {phase === 'reveal' && revealing && revealMeta && (
-        <section className="reveal" style={{ ['--tier' as string]: revealMeta.color }}>
+        <section className={`reveal ${revealMeta.tier ? `tier-${revealMeta.tier}` : 'miss'}`} style={{ ['--tier' as string]: revealMeta.color }}>
+          {revealMeta.tier && revealMeta.tier >= 3 && <div className="reveal-burst" aria-hidden="true" />}
           <RouteArt tier={revealMeta.tier} color={revealMeta.color} miss={revealMeta.miss} />
           <h2 className="reveal-title">{revealMeta.title}</h2>
           <p className="reveal-answer">{revealing.answerName ? `“${revealing.answerName}”` : '—'}</p>
           <p className="reveal-gain">
-            <span className="pts">+{revealing.points} PTS</span> · <span>+{revealing.yards} YDS</span>
+            <span className="pts">+{shownPts} PTS</span> · <span>+{revealing.yards} YDS</span>
           </p>
           <p className="reveal-blurb">{revealMeta.blurb}</p>
           <button className="btn btn-primary" onClick={nextPlay} autoFocus>

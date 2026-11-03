@@ -333,9 +333,13 @@ export const BATCH_1: PromptDef[] = [
 ]
 
 /**
- * Prompts are added in batches. The schedule plays each batch in its own
- * shuffled order, so adding a new batch never changes drives already played.
- * Always append new batches to the END of this list.
+ * Prompts are added in batches. Append new batches to the END of this list,
+ * each with a go-live date after today:
+ *   export const BATCHES = [BATCH_1, BATCH_2, liveFrom('2026-11-12', BATCH_3)]
+ * (import liveFrom from './types'). The date guarantees the batch can't change
+ * any drive already played. Batches 1 and 2 count as live from launch.
+ * New prompts debut first, then prompts recycle with a 7-day cooldown.
+ * Never delete a prompt that has been played; it would change past drives.
  */
 export const BATCHES: PromptDef[][] = [BATCH_1, BATCH_2]
 

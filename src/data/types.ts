@@ -18,6 +18,12 @@ export interface PromptDef {
   /** Words ignored when matching (e.g. "bowl" for bowl games) */
   ignore?: string[]
   answers: AnswerDef[]
+  /**
+   * First day (YYYY-MM-DD, US Central) this prompt can appear in The Daily Drive.
+   * Required for every batch after batch 2. Use a date after today so it can't
+   * change drives people have already played.
+   */
+  from?: string
   /** Team prompts load their answers from public/<src> on demand */
   src?: string
   team?: string
@@ -34,7 +40,7 @@ export function prompt(
   tag: string,
   text: string,
   tiers: TierBuckets,
-  opts: { ignore?: string[] } = {},
+  opts: { ignore?: string[]; from?: string } = {},
 ): PromptDef {
   const answers: AnswerDef[] = []
   for (const key of Object.keys(tiers)) {
@@ -44,5 +50,10 @@ export function prompt(
       answers.push({ name, aliases, tier })
     }
   }
-  return { id, tag, text, answers, ignore: opts.ignore }
+  return { id, tag, text, answers, ignore: opts.ignore, from: opts.from }
+}
+
+/** Tags a batch of new prompts with the day they go live: liveFrom('2026-11-12', BATCH_3) */
+export function liveFrom(date: string, prompts: PromptDef[]): PromptDef[] {
+  return prompts.map((p) => ({ ...p, from: p.from ?? date }))
 }

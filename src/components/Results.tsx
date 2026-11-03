@@ -6,6 +6,9 @@ import { msUntilNextDrive } from '../engine/schedule'
 import type { DriveState, Stats } from '../engine/storage'
 import { driveOutcome, MAX_SCORE, MISS, START_YARD_LINE, TIERS } from '../engine/tiers'
 import { backendEnabled, fetchDistribution, type Distribution } from '../lib/backend'
+import { fx } from '../lib/fx'
+import { sound } from '../lib/sound'
+import { useCountUp } from '../lib/useCountUp'
 import { totals } from './Drive'
 
 function useCountdown() {
@@ -81,12 +84,14 @@ function DistributionChart({ dist, score }: { dist: Distribution; score: number 
   )
 }
 
-export function Results({ state, prompts, label, stats, mode, onHome, onPractice }: {
+export function Results({ state, prompts, label, stats, mode, celebrate = false, onHome, onPractice }: {
   state: DriveState
   prompts: PromptDef[]
   label: string
   stats?: Stats
   mode: 'daily' | 'practice'
+  /** Play the sound and confetti (only right after the drive ends). */
+  celebrate?: boolean
   onHome: () => void
   onPractice: () => void
 }) {
@@ -96,6 +101,30 @@ export function Results({ state, prompts, label, stats, mode, onHome, onPractice
   const [manualCopy, setManualCopy] = useState<string | null>(null)
   const [dist, setDist] = useState<Distribution | null>(null)
   const countdown = useCountdown()
+  const shownScore = useCountUp(score, 1400, 0)
+  const shownYards = useCountUp(yards, 1400, 0)
+
+  useEffect(() => {
+    if (!celebrate) return
+    const timers: number[] = []
+    const later = (ms: number, fn: () => void) => timers.push(window.setTimeout(fn, ms))
+    if (outcome.kind === 'td') {
+      later(150, () => {
+        sound.touchdown()
+        fx.flash('#ffc845', 0.35)
+        fx.quake()
+      })
+      const colors = ['#ffc845', '#f2efe4', '#ff5a5f', '#5ccfe6']
+      ;[[0.5, 0.35], [0.2, 0.5], [0.8, 0.5], [0.35, 0.3], [0.65, 0.3]].forEach(([x, y], i) =>
+        later(200 + i * 380, () => fx.confetti({ colors, count: 90, x, y, power: 1.1, spread: 85, footballs: true })))
+    } else if (outcome.kind === 'fg') {
+      later(150, () => sound.fieldGoal())
+      later(520, () => fx.confetti({ colors: ['#8be36b', '#f2efe4', '#ffb627'], count: 90, y: 0.3, power: 1 }))
+    } else {
+      later(150, () => sound.punt())
+    }
+    return () => timers.forEach(clearTimeout)
+  }, [celebrate, outcome.kind])
 
   useEffect(() => {
     if (mode !== 'daily') return
@@ -127,8 +156,8 @@ export function Results({ state, prompts, label, stats, mode, onHome, onPractice
         <h1 className="outcome-label">{outcome.label}</h1>
         <p className="outcome-detail">{outcome.detail}</p>
         <div className="final-numbers">
-          <div><span className="led big">{score}</span><span className="sb-label">POINTS</span></div>
-          <div><span className="led big">{yards}</span><span className="sb-label">YARDS</span></div>
+          <div><span className="led big">{shownScore}</span><span className="sb-label">POINTS</span></div>
+          <div><span className="led big">{shownYards}</span><span className="sb-label">YARDS</span></div>
         </div>
         <button className="btn btn-primary" onClick={share}>{copied ? 'COPIED ✓' : 'SHARE RESULT'}</button>
         {manualCopy && (

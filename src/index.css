@@ -357,6 +357,144 @@ h1, h2, h3, p { margin: 0; }
   .play-card { padding: 30px 30px 22px; }
 }
 
+/* ---------- Alive: stadium atmosphere ---------- */
+/* Light towers flicker on when the page loads, then hum. */
+.lights { animation: lights-on 1.8s steps(1, end) both, lights-hum 5s 2s ease-in-out infinite; }
+.lights.right { animation-delay: 0.35s, 2.4s; }
+@keyframes lights-on {
+  0% { opacity: 0; } 12% { opacity: 0.85; } 16% { opacity: 0.1; } 26% { opacity: 1; }
+  31% { opacity: 0.35; } 44% { opacity: 1; } 100% { opacity: 1; }
+}
+@keyframes lights-hum { 50% { opacity: 0.86; } }
+/* Haze beams from the towers. */
+.beam {
+  position: absolute; top: 2%; width: 70vmax; height: 90vmax; opacity: 0.0;
+  background: linear-gradient(180deg, rgba(255, 244, 205, 0.16), rgba(255, 244, 205, 0.02) 60%, transparent);
+  filter: blur(18px); mix-blend-mode: screen;
+  animation: beam-in 2.4s 0.6s ease both, beam-sway 11s 3s ease-in-out infinite alternate;
+}
+.beam.left { left: -18vmax; clip-path: polygon(30% 0, 42% 0, 100% 100%, 40% 100%); transform-origin: 36% 0; }
+.beam.right { right: -18vmax; clip-path: polygon(58% 0, 70% 0, 60% 100%, 0 100%); transform-origin: 64% 0; animation-delay: 0.9s, 4s; }
+@keyframes beam-in { to { opacity: 1; } }
+@keyframes beam-sway { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+/* Camera flashes in the crowd. */
+.flashbulb {
+  position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #fff; opacity: 0;
+  box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.85), 0 0 16px 4px rgba(200, 225, 255, 0.4);
+  animation: flashbulb 8s infinite;
+}
+@keyframes flashbulb { 0%, 96%, 100% { opacity: 0; transform: scale(0.4); } 97% { opacity: 1; transform: scale(1.4); } 98.5% { opacity: 0.2; } }
+
+/* Title slams in, subtitle LEDs flicker on. */
+.game-title span { display: inline-block; animation: stamp 620ms cubic-bezier(.2, .9, .25, 1.25) both; }
+.game-title span:nth-child(2) { animation-delay: 180ms; }
+.game-title span:nth-child(3) { animation-delay: 300ms; }
+@keyframes stamp { from { opacity: 0; transform: translateY(-30px) scale(1.35); filter: blur(4px); } }
+.subtitle.led { animation: led-on 1.2s 0.55s steps(1, end) both; }
+@keyframes led-on { 0% { opacity: 0; } 20% { opacity: 1; } 28% { opacity: 0.2; } 40% { opacity: 1; } 46% { opacity: 0.5; } 60%, 100% { opacity: 1; } }
+.kicker, .tagline { animation: fade-up 600ms 0.8s ease both; }
+.home-actions { animation: fade-up 600ms 1s ease both; }
+@keyframes fade-up { from { opacity: 0; transform: translateY(12px); } }
+
+/* Hero button: a shine sweeps across every few seconds. */
+.btn-hero { position: relative; overflow: hidden; }
+.btn-hero::after {
+  content: ''; position: absolute; top: -20%; bottom: -20%; left: -40%; width: 30%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: skewX(-18deg); animation: shine 3.6s 1.6s ease-in-out infinite;
+}
+@keyframes shine { 0% { left: -40%; } 28%, 100% { left: 130%; } }
+
+/* Sound toggle */
+.sound-btn { left: auto; right: 10px; display: flex; align-items: center; gap: 5px; }
+.sound-btn svg { width: 16px; height: 16px; }
+.sound-btn.off { color: var(--dim); }
+
+/* ---------- Alive: during the drive ---------- */
+.led.counting { color: #fff3c4; }
+.bulb.done { animation: bulb-pop 420ms cubic-bezier(.2, .9, .3, 1.6); }
+@keyframes bulb-pop { 40% { transform: scale(1.6); } }
+
+.ball-marker.moving svg { animation: ball-spiral 900ms cubic-bezier(.2, .9, .25, 1); }
+@keyframes ball-spiral {
+  0% { transform: translateY(0) rotate(0); }
+  45% { transform: translateY(-9px) rotate(-14deg) scaleY(0.72); }
+  100% { transform: translateY(0) rotate(0); }
+}
+.turf-flash {
+  position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background: linear-gradient(90deg, transparent 30%, color-mix(in srgb, var(--gain) 60%, transparent) 50%, transparent 70%) 0 0 / 250% 100% no-repeat;
+  animation: turf-flash 900ms ease-out forwards;
+}
+@keyframes turf-flash { from { opacity: 1; background-position: 100% 0; } to { opacity: 0; background-position: 0% 0; } }
+.gain-pop {
+  position: absolute; top: 50%; z-index: 3; pointer-events: none; transform: translate(-50%, -50%);
+  font-family: var(--display); font-weight: 900; font-size: 26px; letter-spacing: 0.02em;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.7), 0 0 12px currentColor;
+  animation: gain-pop 1300ms 500ms cubic-bezier(.2, .9, .3, 1) both;
+}
+@keyframes gain-pop {
+  0% { opacity: 0; transform: translate(-50%, -20%) scale(0.5); }
+  25% { opacity: 1; transform: translate(-50%, -95%) scale(1.15); }
+  75% { opacity: 1; transform: translate(-50%, -110%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -150%) scale(0.95); }
+}
+.field-strip { overflow: visible; }
+.field-strip .turf { border-radius: 2px; }
+.field-strip.in-endzone .endzone { animation: endzone-glow 1.4s ease-in-out infinite; }
+@keyframes endzone-glow { 50% { filter: brightness(1.5) saturate(1.2); box-shadow: inset 0 0 18px rgba(255, 200, 69, 0.8); } }
+
+.play-card.live:not(.shaking) { animation: snap-bump 260ms ease; }
+@keyframes snap-bump { 40% { transform: scale(1.015); } }
+.play-card.urgent { border-color: rgba(255, 90, 79, 0.75); box-shadow: 0 0 0 1px rgba(255, 90, 79, 0.25), 0 0 40px rgba(255, 60, 40, 0.25), 0 18px 50px rgba(0, 0, 0, 0.55); }
+.play-card.urgent .clock-bar span { background: #ff5a4f; box-shadow: 0 0 10px #ff5a4f; }
+.urgent-vignette {
+  position: fixed; inset: 0; z-index: 4; pointer-events: none;
+  box-shadow: inset 0 0 120px rgba(255, 40, 30, 0.45);
+  animation: heartbeat 1s ease-in-out infinite;
+}
+@keyframes heartbeat { 0%, 100% { opacity: 0.35; } 15% { opacity: 1; } 30% { opacity: 0.5; } 45% { opacity: 0.9; } }
+.presnap-word { display: inline-block; }
+.answer-form input:focus { animation: input-glow 2s ease-in-out infinite; }
+@keyframes input-glow { 50% { box-shadow: 0 0 0 4px rgba(255, 182, 39, 0.28), 0 0 24px rgba(255, 182, 39, 0.15); } }
+
+/* Reveal: rarer tiers hit harder. */
+.reveal { position: relative; }
+.reveal-burst {
+  position: absolute; left: 50%; top: 70px; width: 420px; height: 420px; margin: -210px 0 0 -210px; z-index: -1;
+  pointer-events: none; border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--tier) 26%, transparent) 0 8deg, transparent 8deg 20deg);
+  mask-image: radial-gradient(circle, #000 20%, transparent 68%);
+  animation: burst-spin 14s linear infinite, fade 500ms ease;
+}
+@keyframes burst-spin { to { transform: rotate(360deg); } }
+.reveal.tier-5 .reveal-title { animation: pop 420ms cubic-bezier(.2, .9, .3, 1.3), title-glow 1.2s 0.4s ease-in-out infinite; }
+@keyframes title-glow { 50% { text-shadow: 0 0 40px var(--tier), 0 0 80px color-mix(in srgb, var(--tier) 60%, transparent), 0 4px 0 rgba(0, 0, 0, 0.5); } }
+.reveal.miss .reveal-title { animation: thud 420ms cubic-bezier(.3, 1.4, .5, 1); }
+@keyframes thud { 0% { transform: translateY(-24px); opacity: 0; } 60% { transform: translateY(4px); } }
+.reveal-gain { animation: fade-up 400ms 250ms ease both; }
+.reveal-blurb { animation: fade-up 400ms 380ms ease both; }
+
+/* ---------- Alive: results ---------- */
+.outcome-td .outcome-label { animation: pop 500ms cubic-bezier(.2, .9, .3, 1.3), title-glow-td 1.6s 0.6s ease-in-out infinite; }
+@keyframes title-glow-td { 50% { text-shadow: 0 0 50px rgba(255, 200, 69, 0.9), 0 0 100px rgba(255, 160, 0, 0.45), 0 5px 0 #6b4a00; } }
+.results .panel { animation: fade-up 500ms ease both; }
+.results .panel:nth-of-type(2) { animation-delay: 120ms; }
+.results .panel:nth-of-type(3) { animation-delay: 240ms; }
+.results .panel:nth-of-type(4) { animation-delay: 360ms; }
+
+/* ---------- Effects layer ---------- */
+.fx-canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 30; pointer-events: none; }
+.fx-flash { position: fixed; inset: 0; z-index: 29; pointer-events: none; mix-blend-mode: screen; animation: fx-flash 520ms ease-out forwards; }
+@keyframes fx-flash { from { opacity: var(--flash, 0.3); } to { opacity: 0; } }
+.quake .stage { animation: quake 520ms cubic-bezier(.36, .07, .19, .97); }
+@keyframes quake {
+  10%, 90% { transform: translate(-2px, 1px); }
+  20%, 80% { transform: translate(4px, -2px); }
+  30%, 50%, 70% { transform: translate(-6px, 2px); }
+  40%, 60% { transform: translate(6px, -1px); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
 }

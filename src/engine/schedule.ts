@@ -7,6 +7,17 @@ import { PLAYS_PER_DRIVE } from './tiers'
 export const LAUNCH_DATE = '2026-11-03'
 export const TIME_ZONE = 'America/Chicago'
 
+/** From this drive on, every drive has team-specific plays. Earlier drives stay as they were. */
+export const TEAM_SLOT_FROM = 5
+export const TEAM_PLAYS_PER_DRIVE = 2
+
+/** A prompt used in a drive can't come back until this many days later. */
+export const COOLDOWN_DAYS = 7
+/** Live general prompts needed for the cooldown to always hold (5 general plays a day). */
+export const MIN_GENERAL_POOL = COOLDOWN_DAYS * (PLAYS_PER_DRIVE - TEAM_PLAYS_PER_DRIVE)
+/** Batches 1 and 2 shipped before go-live dates existed, so they count as live from launch. */
+const DATELESS_BATCHES = 2
+
 export function todayKey(now = new Date()): string {
   // en-CA formats as YYYY-MM-DD
   return new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now)
@@ -40,6 +51,13 @@ function mulberry32(seed: number) {
   }
 }
 
+/** Stable 0..1 number for a string. Depends only on the string, never on the pool. */
+function hash01(s: string): number {
+  let h = 0x811c9dc5
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 0x01000193)
+  return mulberry32(h ^ 0x5eed)()
+}
+
 function shuffled<T>(items: T[], seed: number): T[] {
   const rand = mulberry32(seed)
   const out = [...items]
@@ -50,96 +68,119 @@ function shuffled<T>(items: T[], seed: number): T[] {
   return out
 }
 
+interface Entry {
+  p: PromptDef
+  /** First drive this prompt may appear in, or null if it has no go-live date. */
+  live: number | null
+  /** Order brand-new prompts debut in (earlier batches first). */
+  debut: number
+}
+
+const liveFromDate = (p: PromptDef) => (p.from ? Math.max(1, dayIndex(p.from) + 1) : null)
+
+/** General prompts: each batch keeps its own shuffled debut order (seed 0x5eed + 1000 x batch). */
+function generalEntries(batches: PromptDef[][]): Entry[] {
+  return batches.flatMap((batch, bi) =>
+    shuffled(batch, 0x5eed + bi * 1000).map((p, i) => ({
+      p,
+      live: liveFromDate(p) ?? (bi < DATELESS_BATCHES ? 1 : null),
+      debut: bi * 100_000 + i,
+    })))
+}
+
+function teamEntries(): Entry[] {
+  return shuffled(TEAM_PROMPTS, 0x7ea).map((p, i) => ({ p, live: liveFromDate(p) ?? 1, debut: i }))
+}
+
+interface Lane { entries: Entry[]; days: PromptDef[][]; lastUsed: Map<string, number> }
+
+const newLane = (entries: Entry[]): Lane => ({ entries, days: [], lastUsed: new Map() })
+
 /**
- * Plays each batch in its own shuffled order (batch 1 first, then batch 2...),
- * so appending a batch never changes drives that already happened. Once every
- * batch is used up, the whole pool repeats in fresh shuffles.
- * A day never contains the same prompt twice.
+ * Fills a lane one day at a time, in order:
+ *  1. Prompts never used before go first (new batches debut right away).
+ *  2. Then prompts that have rested at least COOLDOWN_DAYS, oldest first, with
+ *     a little seeded jitter so the same prompts don't always travel together.
+ *  3. Only if the pool is too small does it fall back to the longest-rested ones.
+ * A day depends only on the days before it and on prompts already live, so a
+ * batch with a future go-live date never changes earlier drives.
  */
-/** From this drive on, every drive has team-specific plays. Earlier drives stay as they were. */
-export const TEAM_SLOT_FROM = 5
-export const TEAM_PLAYS_PER_DRIVE = 2
+function fill(l: Lane, upTo: number, countFor: (d: number) => number, fits: (picks: PromptDef[], p: PromptDef) => boolean) {
+  for (let d = l.days.length + 1; d <= upTo; d++) {
+    const count = countFor(d)
+    if (count === 0) { l.days.push([]); continue }
+    const last = (p: PromptDef) => l.lastUsed.get(p.id)
+    const live = l.entries.filter((e) => e.live !== null && e.live <= d)
+    const fresh = live.filter((e) => last(e.p) === undefined).sort((a, b) => a.debut - b.debut).map((e) => e.p)
+    const used = live.filter((e) => last(e.p) !== undefined).map((e) => e.p)
+    const jitter = (p: PromptDef) => last(p)! + hash01(`${p.id}#${d}`) * COOLDOWN_DAYS
+    const rested = used.filter((p) => d - last(p)! >= COOLDOWN_DAYS).sort((a, b) => jitter(a) - jitter(b))
+    const tired = used
+      .filter((p) => d - last(p)! < COOLDOWN_DAYS)
+      .sort((a, b) => last(a)! - last(b)! || hash01(`${a.id}#${d}`) - hash01(`${b.id}#${d}`))
 
-const teamCache: PromptDef[][] = []
-
-/** Team plays per day, in order, never two from the same team on one day. */
-function teamPromptsFor(driveNo: number): PromptDef[] {
-  const target = driveNo - TEAM_SLOT_FROM
-  if (teamCache[target]) return teamCache[target]
-  const stream: PromptDef[] = []
-  let cycle = 0
-  let ptr = 0
-  const deferred: PromptDef[] = []
-  for (let k = 0; k <= target; k++) {
     const picks: PromptDef[] = []
-    const fits = (p: PromptDef) => !picks.some((q) => q.team === p.team)
-    for (let i = 0; i < deferred.length && picks.length < TEAM_PLAYS_PER_DRIVE; ) {
-      if (fits(deferred[i])) picks.push(...deferred.splice(i, 1))
-      else i++
+    for (const p of [...fresh, ...rested, ...tired]) {
+      if (picks.length >= count) break
+      if (fits(picks, p)) picks.push(p)
     }
-    while (picks.length < TEAM_PLAYS_PER_DRIVE) {
-      if (ptr >= stream.length) stream.push(...shuffled(TEAM_PROMPTS, 0x7ea + cycle++ * 104729))
-      const p = stream[ptr++]
-      if (fits(p)) picks.push(p)
-      else deferred.push(p)
-    }
-    teamCache[k] = picks
+    picks.forEach((p) => l.lastUsed.set(p.id, d))
+    l.days.push(picks)
   }
-  return teamCache[target]
+  return l.days
 }
 
-/** A general prompt can't come back within this many days once the pool starts repeating. */
-const COOLDOWN_DAYS = 5
-const dayCache = new WeakMap<PromptDef[][], PromptDef[][]>()
+const generalCount = (d: number) => (d < TEAM_SLOT_FROM ? PLAYS_PER_DRIVE : PLAYS_PER_DRIVE - TEAM_PLAYS_PER_DRIVE)
+const teamCount = (d: number) => (d < TEAM_SLOT_FROM ? 0 : TEAM_PLAYS_PER_DRIVE)
+const anyFits = () => true
+/** Never two plays about the same team on one day. */
+const teamFits = (picks: PromptDef[], p: PromptDef) => !picks.some((q) => q.team === p.team)
 
-/** General (non-team) prompts per day, simulated in order so cooldowns are respected. */
-function generalDays(upTo: number, batches: PromptDef[][]): PromptDef[][] {
-  const days = dayCache.get(batches) ?? []
-  if (days.length >= upTo) return days
-  const stream: PromptDef[] = []
-  batches.forEach((batch, i) => stream.push(...shuffled(batch, 0x5eed + i * 1000)))
-  const pool = batches.flat()
-  let cycle = 1
-  let ptr = 0
-  const deferred: PromptDef[] = []
-  // Replay from day 1 so results are identical no matter which day is asked for first.
-  const out: PromptDef[][] = []
-  for (let day = 1; day <= upTo; day++) {
-    const count = day < TEAM_SLOT_FROM ? PLAYS_PER_DRIVE : PLAYS_PER_DRIVE - TEAM_PLAYS_PER_DRIVE
-    const recent = new Set(out.slice(-COOLDOWN_DAYS).flat())
-    const picks: PromptDef[] = []
-    for (let i = 0; i < deferred.length && picks.length < count; ) {
-      if (!recent.has(deferred[i]) && !picks.includes(deferred[i])) picks.push(...deferred.splice(i, 1))
-      else i++
-    }
-    while (picks.length < count) {
-      if (ptr >= stream.length) stream.push(...shuffled(pool, 0xc0ffee + cycle++ * 7919))
-      const p = stream[ptr++]
-      if (recent.has(p) || picks.includes(p)) deferred.push(p)
-      else picks.push(p)
-    }
-    out.push(picks)
-  }
-  dayCache.set(batches, out)
-  return out
+const generalLanes = new WeakMap<PromptDef[][], Lane>()
+const teamLane = { current: null as Lane | null }
+
+function generalLane(batches: PromptDef[][]): Lane {
+  let l = generalLanes.get(batches)
+  if (!l) { l = newLane(generalEntries(batches)); generalLanes.set(batches, l) }
+  return l
 }
 
+/** The general and team prompts for one drive, before they're interleaved. */
+export function lanesForDrive(driveNo: number, batches: PromptDef[][] = BATCHES) {
+  const d = Math.max(1, driveNo)
+  const general = fill(generalLane(batches), d, generalCount, anyFits)[d - 1]
+  teamLane.current ??= newLane(teamEntries())
+  const team = fill(teamLane.current, d, teamCount, teamFits)[d - 1]
+  return { general, team }
+}
+
+/** The 7 prompts for a given drive number. Same for every player. */
 export function promptsForDrive(driveNo: number, batches: PromptDef[][] = BATCHES): PromptDef[] {
-  const general = generalDays(driveNo, batches)[driveNo - 1]
-  if (driveNo < TEAM_SLOT_FROM) return [...general]
+  const { general, team } = lanesForDrive(driveNo, batches)
   const plays = [...general]
   // Team plays go in seeded spots, never play 1.
-  const rand = mulberry32(driveNo * 31337)
-  for (const t of teamPromptsFor(driveNo)) {
+  const rand = mulberry32(Math.max(1, driveNo) * 31337)
+  for (const t of team) {
     const slot = 1 + Math.floor(rand() * plays.length)
     plays.splice(slot, 0, t)
   }
   return plays
 }
 
+/** First drive a general prompt may appear in: null = no go-live date (never scheduled). */
+export function liveDriveOf(id: string, batches: PromptDef[][] = BATCHES): number | null | undefined {
+  return generalLane(batches).entries.find((e) => e.p.id === id)?.live
+}
+
+/** Random practice drive drawn only from prompts already live, so practice never spoils future days. */
 export function randomPractice(): PromptDef[] {
+  const today = driveNumber(todayKey())
   const seed = Math.floor(Math.random() * 1e9)
-  const plays = shuffled(PROMPTS, seed).slice(0, PLAYS_PER_DRIVE - TEAM_PLAYS_PER_DRIVE)
+  const live = PROMPTS.filter((p) => {
+    const from = liveDriveOf(p.id)
+    return from != null && from <= today
+  })
+  const plays = shuffled(live, seed).slice(0, PLAYS_PER_DRIVE - TEAM_PLAYS_PER_DRIVE)
   const teams = shuffled(TEAM_PROMPTS, seed + 1)
   const picked = [teams[0], teams.find((t) => t.team !== teams[0].team)!]
   picked.forEach((t, i) => plays.splice(1 + ((seed >> (i * 3)) % plays.length), 0, t))

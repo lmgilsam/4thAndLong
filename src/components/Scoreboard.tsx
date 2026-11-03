@@ -1,5 +1,6 @@
 import type { PlayResult } from '../engine/storage'
 import { ballOn, PLAYS_PER_DRIVE, TIERS } from '../engine/tiers'
+import { useCountUp } from '../lib/useCountUp'
 
 export function Scoreboard({ results, current, score, yards }: {
   results: PlayResult[]
@@ -7,11 +8,14 @@ export function Scoreboard({ results, current, score, yards }: {
   score: number
   yards: number
 }) {
+  const shownScore = useCountUp(score, 900)
+  const shownYards = useCountUp(yards, 900)
+  const counting = shownScore !== score
   return (
     <header className="scoreboard">
       <div className="sb-box">
         <span className="sb-label">BALL ON</span>
-        <span className="led led-sm">{ballOn(yards)}</span>
+        <span className="led led-sm">{ballOn(shownYards)}</span>
       </div>
       <div className="sb-center">
         <div className="bulbs">
@@ -31,7 +35,7 @@ export function Scoreboard({ results, current, score, yards }: {
       </div>
       <div className="sb-box right">
         <span className="sb-label">SCORE</span>
-        <span className="led">{score}</span>
+        <span className={`led ${counting ? 'counting' : ''}`}>{shownScore}</span>
       </div>
     </header>
   )
