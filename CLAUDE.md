@@ -53,6 +53,7 @@ Lint currently has 6 known warnings in `src/components/Drive.tsx` and `src/compo
 src/config.ts            GAME_NAME, GAME_SUBTITLE, SHARE_URL. Rename the game here.
 src/data/prompts.ts      THE ANSWER DATABASE: BATCH_1 (31 prompts) + BATCHES list. Add new batches at the END.
 src/data/prompts-batch2.ts  BATCH_2 (30 prompts)
+src/data/prompts-batch3.ts  BATCH_3 (26 prompts, live from 2026-11-04): league leaders 1980+, HOF RB/LB/OL, draft classes, misc
 src/data/team-prompts.ts 96 team prompts (QB/RB/defense x 32 teams), lazy-loaded via ensureAnswers()
 src/data/team-index.json Generated list of team prompts (do not hand-edit)
 public/teams/*.json      Generated team answer lists (do not hand-edit)
@@ -115,7 +116,8 @@ prompt('my-id', 'NFL', 'Name a ...', {
 - `#drive-N` only replays drives up to today, and `/#practice` only draws general prompts already live, so future prompts never leak.
 - **Team plays:** Drives 1-4 have 7 general prompts. From Drive #5 (`TEAM_SLOT_FROM`) every drive has 5 general + 2 team prompts (`TEAM_PLAYS_PER_DRIVE`), never two from the same team, never as play 1.
 - **Don't change `LAUNCH_DATE` (2026-11-03), `TEAM_SLOT_FROM`, `COOLDOWN_DAYS`, or the seeds** (`0x5eed`, `0x7ea`, `31337`) without asking. That renumbers or reshuffles drives.
-- Pool size: 61 general + 96 team = 157 prompts. General prompts first recycle at Drive #11 (with the 7-day gap), so growing the general database is still the priority.
+- Pool size: 87 general + 96 team = 183 prompts. General prompts are all new through Drive #15 (Nov 17, 2026) and first recycle at Drive #16 (Nov 18); team prompts are all new through Drive #52 (Dec 24). Each new batch of N general prompts adds about N/5 days of all-new drives. Growing the general database is still the priority.
+- League-leader stats: nflverse play-by-play undercounts some 1999 games (Warner shows 38 TDs; official is 41). Use nflverse for 2000+ only, grouped by player_id (never by name: there are two Steve Smiths), and official year-by-year leader tables for earlier seasons. Sacks are official only from 1982.
 - Team answer lists are generated, not hand-written. Tiers come from a popularity estimate (seasons with the team, stats, career fame, plus the legends list). Fix a bad tier by editing `scripts/legends.py` or the scoring in `build_team_data.py` and regenerating. Data is nflverse (CC BY 4.0); keep the credit line in How to Play.
 - Day boundaries use `America/Chicago`. Use `todayKey()` rather than `new Date()` math.
 - Matching (`match.ts`): accepts unique surnames ("Mahomes"), returns `ambiguous` when a surname is shared ("Manning"), and allows small typos scaled by length. If you loosen fuzzy matching, run `match-cases.ts` to make sure wrong answers don't start counting.

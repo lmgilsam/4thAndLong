@@ -1,6 +1,7 @@
-import { prompt, type PromptDef } from './types'
+import { liveFrom, prompt, type PromptDef } from './types'
 import { NFL as T, CFB as C } from './teams'
 import { BATCH_2 } from './prompts-batch2'
+import { BATCH_3 } from './prompts-batch3'
 
 // Every prompt lists its accepted answers grouped by seeded rarity tier:
 //   1 Checkdown (everyone says it) -> 5 House Call (almost nobody says it)
@@ -341,6 +342,6 @@ export const BATCH_1: PromptDef[] = [
  * New prompts debut first, then prompts recycle with a 7-day cooldown.
  * Never delete a prompt that has been played; it would change past drives.
  */
-export const BATCHES: PromptDef[][] = [BATCH_1, BATCH_2]
+export const BATCHES: PromptDef[][] = [BATCH_1, BATCH_2, liveFrom('2026-11-04', BATCH_3)]
 
 export const PROMPTS: PromptDef[] = BATCHES.flat()
