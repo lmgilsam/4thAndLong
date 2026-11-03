@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PromptDef } from '../data/types'
 import { matchAnswer, normalize } from '../engine/match'
+import { ensureAnswers } from '../data/team-prompts'
 import { saveDrive, type DriveState, type PlayResult } from '../engine/storage'
 import { DOWNS_PER_PLAY, MISS, PLAY_CLOCK_SECONDS, TIERS } from '../engine/tiers'
 import { FieldStrip } from './FieldStrip'
@@ -32,6 +33,19 @@ export function Drive({ session, initial, onComplete }: {
   const [notice, setNotice] = useState<{ text: string; tone: 'miss' | 'info' } | null>(null)
   const [shaking, setShaking] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [ready, setReady] = useState(() => session.prompts.every((p) => !p.src || p.answers.length > 0))
+  const [loadError, setLoadError] = useState(false)
+  const [loadTry, setLoadTry] = useState(0)
+
+  // Team prompts fetch their (large) answer lists before the drive starts.
+  useEffect(() => {
+    if (ready) return
+    let alive = true
+    Promise.all(session.prompts.map(ensureAnswers))
+      .then(() => alive && setReady(true))
+      .catch(() => alive && setLoadError(true))
+    return () => { alive = false }
+  }, [ready, session.prompts, loadTry])
 
   const persist = useCallback((s: DriveState) => {
     setState(s)
@@ -44,10 +58,10 @@ export function Drive({ session, initial, onComplete }: {
 
   // Start (or resume) the clock for the current play.
   useEffect(() => {
-    if (revealing || state.finished || !prompt) return
+    if (!ready || revealing || state.finished || !prompt) return
     if (state.current?.index === index) return
     persist({ ...state, current: { index, startedAt: Date.now() + PRESNAP_MS, guesses: [] } })
-  }, [index, prompt, revealing, state, persist])
+  }, [ready, index, prompt, revealing, state, persist])
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 100)
@@ -91,8 +105,13 @@ export function Drive({ session, initial, onComplete }: {
       return
     }
     if (res.kind === 'ambiguous') {
-      const names = res.options.map((o) => o.name.split(' ')[0]).join(' or ')
-      setNotice({ text: `Which one? ${names}? Be more specific.`, tone: 'info' })
+      const firsts = [...new Set(res.options.map((o) => o.name.split(' ')[0]))]
+      setNotice({
+        text: firsts.length <= 4
+          ? `Which one? ${firsts.join(' or ')}? Be more specific.`
+          : `${res.options.length} players match that name. Add a first name.`,
+        tone: 'info',
+      })
       return
     }
     if (guesses.some((g) => normalize(g) === normalize(raw))) {
@@ -140,7 +159,20 @@ export function Drive({ session, initial, onComplete }: {
       <Scoreboard results={state.results} current={revealing ? index - 1 : index} score={score} yards={yards} />
       <FieldStrip yards={yards} compact />
 
-      {phase !== 'reveal' && prompt && (
+      {!ready && (
+        <section className="play-card loading-card">
+          {loadError ? (
+            <>
+              <p className="notice miss">Couldn't load today's team roster. Check your connection.</p>
+              <button className="btn btn-primary" onClick={() => { setLoadError(false); setLoadTry((n) => n + 1) }}>TRY AGAIN</button>
+            </>
+          ) : (
+            <span className="presnap-word">HUDDLE…</span>
+          )}
+        </section>
+      )}
+
+      {ready && phase !== 'reveal' && prompt && (
         <section className={`play-card ${phase} ${shaking ? 'shaking' : ''}`} key={index}>
           <div className="play-card-top">
             <span className="tag">{session.label} · PLAY {index + 1}</span>

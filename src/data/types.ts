@@ -18,6 +18,9 @@ export interface PromptDef {
   /** Words ignored when matching (e.g. "bowl" for bowl games) */
   ignore?: string[]
   answers: AnswerDef[]
+  /** Team prompts load their answers from public/<src> on demand */
+  src?: string
+  team?: string
 }
 
 /**

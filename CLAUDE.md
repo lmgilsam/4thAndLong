@@ -44,13 +44,17 @@ Testing URLs: `/#practice` plays a random unsaved drive; `/#drive-5` replays dri
 
 **Before calling any change done:** run `npm run build`, and if you touched `src/data/` or `src/engine/match.ts`, also run `validate-data.ts` (and `match-cases.ts` for matching changes).
 
-Lint currently has 3 known warnings in `src/components/Drive.tsx` (set-state-in-effect, exhaustive-deps). Don't add new ones; fix those only if asked or if you're already working in that code.
+Lint currently has 7 known warnings in `src/components/Drive.tsx` and `src/components/Results.tsx` (set-state-in-effect, exhaustive-deps, immutability, only-export-components). Don't add new ones; fix those only if asked or if you're already working in that code.
 
 ## Project map
 
 ```
 src/config.ts            GAME_NAME, GAME_SUBTITLE, SHARE_URL. Rename the game here.
-src/data/prompts.ts      THE ANSWER DATABASE (31 prompts). Add or edit prompts here.
+src/data/prompts.ts      THE ANSWER DATABASE: BATCH_1 (31 prompts) + BATCHES list. Add new batches at the END.
+src/data/prompts-batch2.ts  BATCH_2 (30 prompts)
+src/data/team-prompts.ts 96 team prompts (QB/RB/defense x 32 teams), lazy-loaded via ensureAnswers()
+src/data/team-index.json Generated list of team prompts (do not hand-edit)
+public/teams/*.json      Generated team answer lists (do not hand-edit)
 src/data/teams.ts        Shared alias strings for NFL teams (NFL.*) and colleges (CFB.*)
 src/data/types.ts        PromptDef / AnswerDef types and the prompt() helper
 src/engine/tiers.ts      Tier names, points, yards, colors, emoji; drive constants; outcomes
@@ -61,7 +65,7 @@ src/lib/backend.ts       Supabase client (optional) for submit + score distribut
 src/App.tsx              Views (home / drive / results), daily vs practice sessions
 src/components/          Drive, Results (share text, histogram), Scoreboard, FieldStrip, HowToPlay, RouteArt
 supabase/schema.sql      Tables + RPC functions. Run once in Supabase SQL Editor.
-scripts/                 validate-data, match-cases, dump-drive
+scripts/                 validate-data, match-cases, dump-drive, build_team_data.py (+ legends.py) to regenerate team prompts from nflverse data
 index.html               Page title and Open Graph / link preview tags
 ```
 
@@ -97,9 +101,11 @@ prompt('my-id', 'NFL', 'Name a ...', {
 
 ## Gotchas (read before touching the schedule or data)
 
-- **Changing the prompt pool reshuffles every future day.** `promptsForDrive()` shuffles the whole pool with a fixed seed, so adding, removing, or reordering prompts changes which prompts land on which day, including today for anyone who hasn't started yet. Players mid-drive are protected (their saved drive stores its own `promptIds`). Add prompts in batches and tell Leo when a change will alter upcoming days.
-- **Don't change `LAUNCH_DATE` (2026-11-03) or the seed** (`0x5eed`, `7919`) without asking. That renumbers or reshuffles every drive.
-- The pool is small: 31 prompts covers about 4 days before cycling. Growing the database is a priority.
+- **Prompts are scheduled in batches.** `promptsForDrive()` plays BATCH_1 in its own shuffle, then BATCH_2, and so on, then cycles the whole pool with a 5-day cooldown. Appending a new batch only fills days after the current ones run out, so it never changes past days. Editing or removing prompts inside an existing batch DOES reshuffle that batch's upcoming days: tell Leo when a change will alter upcoming days. Players mid-drive are protected (their saved drive stores its own `promptIds`).
+- **Team plays:** Drives 1-4 have 7 general prompts. From Drive #5 (`TEAM_SLOT_FROM`) every drive has 5 general + 2 team prompts (`TEAM_PLAYS_PER_DRIVE`), never two from the same team, never as play 1.
+- **Don't change `LAUNCH_DATE` (2026-11-03), `TEAM_SLOT_FROM`, or the seeds** (`0x5eed`, `0xc0ffee`, `7919`, `0x7ea`) without asking. That renumbers or reshuffles drives.
+- Pool size: 61 general + 96 team = 157 prompts. General prompts start repeating around Drive #10, so growing the general database is still the priority.
+- Team answer lists are generated, not hand-written. Tiers come from a popularity estimate (seasons with the team, stats, career fame, plus the legends list). Fix a bad tier by editing `scripts/legends.py` or the scoring in `build_team_data.py` and regenerating. Data is nflverse (CC BY 4.0); keep the credit line in How to Play.
 - Day boundaries use `America/Chicago`. Use `todayKey()` rather than `new Date()` math.
 - Matching (`match.ts`): accepts unique surnames ("Mahomes"), returns `ambiguous` when a surname is shared ("Manning"), and allows small typos scaled by length. If you loosen fuzzy matching, run `match-cases.ts` to make sure wrong answers don't start counting.
 - The game must work fully without Supabase. If the env vars are missing, only the "vs. everyone today" chart is hidden. Keep it that way.
@@ -121,6 +127,6 @@ When a name is picked, update: `GAME_NAME` / `GAME_SUBTITLE` / `SHARE_URL` in `s
 
 ## Next up
 
-- Grow the prompt database (biggest need).
+- Grow the general prompt database (biggest need).
 - Re-tier answers from real data once people play: `select * from answer_frequency('heisman');`
 - Archive, unlimited mode, themed packs, accounts, ads.

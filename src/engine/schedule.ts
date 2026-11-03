@@ -1,4 +1,5 @@
-import { PROMPTS } from '../data/prompts'
+import { BATCHES, PROMPTS } from '../data/prompts'
+import { TEAM_PROMPTS } from '../data/team-prompts'
 import type { PromptDef } from '../data/types'
 import { PLAYS_PER_DRIVE } from './tiers'
 
@@ -50,29 +51,103 @@ function shuffled<T>(items: T[], seed: number): T[] {
 }
 
 /**
- * Walks through the prompt pool in shuffled cycles so no prompt repeats until
- * the whole pool has been used. A day never contains the same prompt twice.
+ * Plays each batch in its own shuffled order (batch 1 first, then batch 2...),
+ * so appending a batch never changes drives that already happened. Once every
+ * batch is used up, the whole pool repeats in fresh shuffles.
+ * A day never contains the same prompt twice.
  */
-export function promptsForDrive(driveNo: number, pool: PromptDef[] = PROMPTS): PromptDef[] {
-  const needed = driveNo * PLAYS_PER_DRIVE
-  const seq: PromptDef[] = []
-  for (let cycle = 0; seq.length < needed + PLAYS_PER_DRIVE; cycle++) {
-    seq.push(...shuffled(pool, 0x5eed + cycle * 7919))
+/** From this drive on, every drive has team-specific plays. Earlier drives stay as they were. */
+export const TEAM_SLOT_FROM = 5
+export const TEAM_PLAYS_PER_DRIVE = 2
+
+const teamCache: PromptDef[][] = []
+
+/** Team plays per day, in order, never two from the same team on one day. */
+function teamPromptsFor(driveNo: number): PromptDef[] {
+  const target = driveNo - TEAM_SLOT_FROM
+  if (teamCache[target]) return teamCache[target]
+  const stream: PromptDef[] = []
+  let cycle = 0
+  let ptr = 0
+  const deferred: PromptDef[] = []
+  for (let k = 0; k <= target; k++) {
+    const picks: PromptDef[] = []
+    const fits = (p: PromptDef) => !picks.some((q) => q.team === p.team)
+    for (let i = 0; i < deferred.length && picks.length < TEAM_PLAYS_PER_DRIVE; ) {
+      if (fits(deferred[i])) picks.push(...deferred.splice(i, 1))
+      else i++
+    }
+    while (picks.length < TEAM_PLAYS_PER_DRIVE) {
+      if (ptr >= stream.length) stream.push(...shuffled(TEAM_PROMPTS, 0x7ea + cycle++ * 104729))
+      const p = stream[ptr++]
+      if (fits(p)) picks.push(p)
+      else deferred.push(p)
+    }
+    teamCache[k] = picks
   }
-  const start = (driveNo - 1) * PLAYS_PER_DRIVE
-  const picked: PromptDef[] = []
-  for (let i = start; picked.length < PLAYS_PER_DRIVE && i < seq.length; i++) {
-    if (!picked.includes(seq[i])) picked.push(seq[i])
+  return teamCache[target]
+}
+
+/** A general prompt can't come back within this many days once the pool starts repeating. */
+const COOLDOWN_DAYS = 5
+const dayCache = new WeakMap<PromptDef[][], PromptDef[][]>()
+
+/** General (non-team) prompts per day, simulated in order so cooldowns are respected. */
+function generalDays(upTo: number, batches: PromptDef[][]): PromptDef[][] {
+  const days = dayCache.get(batches) ?? []
+  if (days.length >= upTo) return days
+  const stream: PromptDef[] = []
+  batches.forEach((batch, i) => stream.push(...shuffled(batch, 0x5eed + i * 1000)))
+  const pool = batches.flat()
+  let cycle = 1
+  let ptr = 0
+  const deferred: PromptDef[] = []
+  // Replay from day 1 so results are identical no matter which day is asked for first.
+  const out: PromptDef[][] = []
+  for (let day = 1; day <= upTo; day++) {
+    const count = day < TEAM_SLOT_FROM ? PLAYS_PER_DRIVE : PLAYS_PER_DRIVE - TEAM_PLAYS_PER_DRIVE
+    const recent = new Set(out.slice(-COOLDOWN_DAYS).flat())
+    const picks: PromptDef[] = []
+    for (let i = 0; i < deferred.length && picks.length < count; ) {
+      if (!recent.has(deferred[i]) && !picks.includes(deferred[i])) picks.push(...deferred.splice(i, 1))
+      else i++
+    }
+    while (picks.length < count) {
+      if (ptr >= stream.length) stream.push(...shuffled(pool, 0xc0ffee + cycle++ * 7919))
+      const p = stream[ptr++]
+      if (recent.has(p) || picks.includes(p)) deferred.push(p)
+      else picks.push(p)
+    }
+    out.push(picks)
   }
-  return picked
+  dayCache.set(batches, out)
+  return out
+}
+
+export function promptsForDrive(driveNo: number, batches: PromptDef[][] = BATCHES): PromptDef[] {
+  const general = generalDays(driveNo, batches)[driveNo - 1]
+  if (driveNo < TEAM_SLOT_FROM) return [...general]
+  const plays = [...general]
+  // Team plays go in seeded spots, never play 1.
+  const rand = mulberry32(driveNo * 31337)
+  for (const t of teamPromptsFor(driveNo)) {
+    const slot = 1 + Math.floor(rand() * plays.length)
+    plays.splice(slot, 0, t)
+  }
+  return plays
 }
 
 export function randomPractice(): PromptDef[] {
-  return shuffled(PROMPTS, Math.floor(Math.random() * 1e9)).slice(0, PLAYS_PER_DRIVE)
+  const seed = Math.floor(Math.random() * 1e9)
+  const plays = shuffled(PROMPTS, seed).slice(0, PLAYS_PER_DRIVE - TEAM_PLAYS_PER_DRIVE)
+  const teams = shuffled(TEAM_PROMPTS, seed + 1)
+  const picked = [teams[0], teams.find((t) => t.team !== teams[0].team)!]
+  picked.forEach((t, i) => plays.splice(1 + ((seed >> (i * 3)) % plays.length), 0, t))
+  return plays
 }
 
 export function getPrompt(id: string): PromptDef | undefined {
-  return PROMPTS.find((p) => p.id === id)
+  return PROMPTS.find((p) => p.id === id) ?? TEAM_PROMPTS.find((p) => p.id === id)
 }
 
 /** Milliseconds until the next drive unlocks (midnight Central). */

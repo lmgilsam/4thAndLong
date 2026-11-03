@@ -60,6 +60,21 @@ prompt('my-id', 'NFL', 'Name a ...', {
 Then run `npx tsx scripts/validate-data.ts` to catch duplicate or conflicting aliases.
 Note: adding prompts reshuffles future days, so add them before launch or in batches.
 
+## Team prompts
+
+96 prompts ("Name a QB / RB / defensive player who has played for <team>"), two per
+drive from Drive #5 on. Answer lists live in `public/teams/` and load on demand.
+They are generated from [nflverse](https://github.com/nflverse/nflverse-data) roster
+and stats data (CC BY 4.0, credited in How to Play):
+
+```bash
+# download roster_1920.csv ... roster_2025.csv, player_stats_season.csv,
+# player_stats_def_season.csv and stats_player_reg_2025.csv into a folder, then:
+python3 scripts/build_team_data.py /path/to/nfldata
+```
+
+`scripts/legends.py` holds hand-picked pre-1999 legends that get a popularity boost.
+
 ## Deploy (Vercel + Supabase)
 
 1. **GitHub:** push this folder to a new repo.

@@ -30,6 +30,10 @@ export function HowToPlay({ onClose }: { onClose: () => void }) {
             ))}
           </tbody>
         </table>
+        <p className="credit">
+          Team roster data from <a href="https://github.com/nflverse/nflverse-data" target="_blank" rel="noreferrer">nflverse</a> (CC BY 4.0).
+          Not affiliated with the NFL or any team.
+        </p>
         <button className="btn btn-primary" onClick={onClose} autoFocus>GOT IT</button>
       </div>
     </div>

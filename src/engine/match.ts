@@ -69,6 +69,8 @@ function buildIndex(p: PromptDef): Index {
       if (!key) continue
       if (!exact.has(key)) exact.set(key, a)
       keys.push({ key, answer: a })
+      const bare = key.split(' ').filter((w) => !SUFFIXES.has(w)).join(' ')
+      if (bare && bare !== key && !exact.has(bare)) exact.set(bare, a)
     }
     const last = lastToken(normalize(a.name, p.ignore))
     if (last) {

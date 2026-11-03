@@ -1,5 +1,6 @@
 import { prompt, type PromptDef } from './types'
 import { NFL as T, CFB as C } from './teams'
+import { BATCH_2 } from './prompts-batch2'
 
 // Every prompt lists its accepted answers grouped by seeded rarity tier:
 //   1 Checkdown (everyone says it) -> 5 House Call (almost nobody says it)
@@ -7,7 +8,8 @@ import { NFL as T, CFB as C } from './teams'
 // recalculated from actual answer frequency (see supabase/schema.sql).
 // Facts checked through the 2025 NFL season / Super Bowl LX (Feb 2026).
 
-export const PROMPTS: PromptDef[] = [
+/** Batch 1: launch set (Nov 3, 2026). */
+export const BATCH_1: PromptDef[] = [
   prompt('nfl-team', 'NFL', 'Name an NFL team', {
     1: [T.DAL, T.NE, T.KC, T.GB, T.PIT, T.PHI],
     2: [T.SF, T.CHI, T.NYG, T.LV, T.DEN, T.MIA, T.HOU, T.BAL, T.BUF, T.SEA],
@@ -329,3 +331,12 @@ export const PROMPTS: PromptDef[] = [
     5: ['DVOA', 'Approximate Value|AV', 'Hurries|QB Hurries', 'Separation', 'Net Yards per Attempt|NY/A'],
   }),
 ]
+
+/**
+ * Prompts are added in batches. The schedule plays each batch in its own
+ * shuffled order, so adding a new batch never changes drives already played.
+ * Always append new batches to the END of this list.
+ */
+export const BATCHES: PromptDef[][] = [BATCH_1, BATCH_2]
+
+export const PROMPTS: PromptDef[] = BATCHES.flat()
