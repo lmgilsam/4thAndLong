@@ -128,11 +128,82 @@ function noise(o: NoiseOpts) {
   src.stop(t0 + o.dur + 0.05)
 }
 
-/** A stadium crowd: layered filtered noise that swells and fades. */
+/** A stadium crowd roar: layered filtered noise that swells and fades. */
 function crowd(intensity: number, dur: number, at = 0) {
   noise({ dur, vol: 0.16 * intensity, at, freq: 1100, q: 0.6, attack: dur * 0.25 })
   noise({ dur: dur * 0.9, vol: 0.12 * intensity, at: at + 0.05, freq: 520, q: 0.7, attack: dur * 0.3 })
   noise({ dur: dur * 0.8, vol: 0.06 * intensity, at: at + 0.1, freq: 2600, q: 1.2, attack: dur * 0.2 })
+}
+
+const rnd = (a: number, b: number) => a + Math.random() * (b - a)
+
+/**
+ * One crowd voice: a buzzy tone through two vowel filters, so it reads as a
+ * person yelling ("whoo") or booing ("ooo") rather than a synth.
+ */
+function voice(o: { freq: number; to: number; dur: number; vol: number; at: number; vowel: [number, number]; attack: number }) {
+  const ac = audio()
+  if (!ac || !master) return
+  const t0 = ac.currentTime + o.at
+  const osc = ac.createOscillator()
+  osc.type = 'sawtooth'
+  osc.frequency.setValueAtTime(o.freq, t0)
+  osc.frequency.exponentialRampToValueAtTime(o.to, t0 + o.dur)
+  const lfo = ac.createOscillator()
+  const lg = ac.createGain()
+  lfo.frequency.value = rnd(4.5, 6.5)
+  lg.gain.value = o.freq * 0.025
+  lfo.connect(lg).connect(osc.frequency)
+  const g = ac.createGain()
+  g.gain.setValueAtTime(0.0001, t0)
+  g.gain.exponentialRampToValueAtTime(o.vol, t0 + o.attack)
+  g.gain.setValueAtTime(o.vol, t0 + o.dur * 0.6)
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + o.dur)
+  for (const [i, f] of o.vowel.entries()) {
+    const bp = ac.createBiquadFilter()
+    bp.type = 'bandpass'
+    bp.frequency.value = f
+    bp.Q.value = 5
+    const fg = ac.createGain()
+    fg.gain.value = i === 0 ? 1 : 0.45
+    osc.connect(bp).connect(fg).connect(g)
+  }
+  g.connect(master)
+  osc.start(t0); lfo.start(t0)
+  osc.stop(t0 + o.dur + 0.05); lfo.stop(t0 + o.dur + 0.05)
+}
+
+/** Scattered hand claps. */
+function claps(count: number, spread: number, at = 0, vol = 0.07) {
+  for (let i = 0; i < count; i++) {
+    noise({ dur: 0.035, vol: vol * rnd(0.5, 1), at: at + Math.random() * spread, freq: rnd(1200, 2200), q: 1.1, attack: 0.002 })
+  }
+}
+
+/**
+ * Crowd cheering. level 1 = nice play, 2 = big play, 3 = the place erupts.
+ * Roar + "whoo" voices + applause, all scaled by level.
+ */
+function cheer(level: number, at = 0) {
+  const dur = 1.3 + level * 0.7
+  crowd(0.45 + level * 0.35, dur, at)
+  const voices = 3 + level * 4
+  for (let i = 0; i < voices; i++) {
+    const f = rnd(320, 620) * (Math.random() < 0.4 ? 1.6 : 1) // mix of lower and higher voices
+    voice({ freq: f, to: f * rnd(1.15, 1.45), dur: rnd(0.6, 1.1) + level * 0.2, vol: 0.018 + level * 0.006, at: at + rnd(0, 0.5), vowel: [rnd(650, 800), rnd(1100, 1300)], attack: 0.06 })
+  }
+  claps(10 + level * 22, dur * 0.85, at + 0.15, 0.05 + level * 0.015)
+}
+
+/** The home crowd booing: low, sagging "ooo" voices over a grumble. */
+function boo(at = 0) {
+  const dur = 2.4
+  for (let i = 0; i < 16; i++) {
+    const f = rnd(95, 175) * (Math.random() < 0.3 ? 1.5 : 1)
+    voice({ freq: f, to: f * rnd(0.78, 0.9), dur: rnd(1.6, 2.3), vol: 0.055, at: at + rnd(0, 0.45), vowel: [rnd(300, 360), rnd(780, 900)], attack: rnd(0.25, 0.5) })
+  }
+  noise({ dur, vol: 0.15, at, freq: 420, sweepTo: 260, q: 0.7, attack: 0.4 })
+  noise({ dur: dur * 0.8, vol: 0.07, at: at + 0.2, freq: 900, q: 0.8, attack: 0.5 })
 }
 
 function airhorn(at = 0, dur = 0.9) {
@@ -166,31 +237,43 @@ export const sound = {
     tone({ freq: 150, to: 70, type: 'square', dur: 0.22, vol: 0.12, filter: 900 })
     noise({ dur: 0.14, vol: 0.1, freq: 200, type: 'lowpass' })
   },
-  /** Delay of game / turnover: stadium buzzer plus a groan. */
+  /** Delay of game: stadium buzzer plus a groan. */
   buzzer() {
     tone({ freq: 155, type: 'sawtooth', dur: 0.7, vol: 0.09, filter: 1400, attack: 0.01 })
     tone({ freq: 161, type: 'sawtooth', dur: 0.7, vol: 0.09, filter: 1400, attack: 0.01 })
     noise({ dur: 1.4, vol: 0.09, at: 0.25, freq: 700, sweepTo: 300, q: 0.7, attack: 0.3 })
   },
-  /** Correct answer. Rarer tiers get more notes and a louder crowd. */
+  /** Turnover on downs: a short buzzer, then the crowd boos. */
+  turnover() {
+    tone({ freq: 155, type: 'sawtooth', dur: 0.45, vol: 0.08, filter: 1400, attack: 0.01 })
+    tone({ freq: 161, type: 'sawtooth', dur: 0.45, vol: 0.08, filter: 1400, attack: 0.01 })
+    boo(0.25)
+  },
+  /**
+   * Correct answer. Rarer tiers get more notes and a bigger crowd:
+   * Slant gets a smattering of applause, Chunk Play a cheer, Deep Ball a big
+   * cheer, House Call the whole stadium plus an air horn.
+   */
   hit(tier: number) {
     for (let i = 0; i < tier; i++) {
       tone({ freq: CHIME[i], type: 'triangle', dur: 0.32, vol: 0.14, at: i * 0.075 })
       tone({ freq: CHIME[i] * 2, type: 'sine', dur: 0.2, vol: 0.03, at: i * 0.075 })
     }
-    if (tier >= 2) crowd(0.35 + tier * 0.18, 0.9 + tier * 0.35, 0.05)
+    if (tier === 2) claps(14, 0.9, 0.1, 0.05)
+    if (tier >= 3) cheer(tier - 2, 0.05)
     if (tier >= 5) airhorn(0.3, 0.7)
   },
   touchdown() {
     airhorn(0, 0.5)
     airhorn(0.6, 1.1)
-    crowd(1.4, 3.6)
+    cheer(3)
+    cheer(2, 1.6)
     CHIME.forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.5, vol: 0.12, at: 0.2 + i * 0.09 }))
   },
   fieldGoal() {
     tone({ freq: 140, to: 50, type: 'triangle', dur: 0.14, vol: 0.4 }) // the kick
     noise({ dur: 0.08, vol: 0.15, freq: 600, type: 'lowpass' })
-    crowd(0.9, 2.2, 0.35)
+    cheer(2, 0.35)
     tone({ freq: 784, type: 'triangle', dur: 0.4, vol: 0.12, at: 0.5 })
     tone({ freq: 1046.5, type: 'triangle', dur: 0.5, vol: 0.12, at: 0.62 })
   },

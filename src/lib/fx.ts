@@ -23,12 +23,24 @@ function emit(name: string, detail: unknown) {
   window.dispatchEvent(new CustomEvent(name, { detail }))
 }
 
+const crowdTimer = { id: 0 }
+
 export const fx = {
   confetti(o: ConfettiOpts) {
     if (!reducedMotion()) emit('fx:confetti', o)
   },
   flash(color: string, strength = 0.3) {
     if (!reducedMotion()) emit('fx:flash', { color, strength })
+  },
+  /** The stadium crowd reacts on screen: cheer (level 1-3) or boo. */
+  crowd(kind: 'cheer' | 'boo', level = 1, ms = 2200) {
+    if (reducedMotion()) return
+    const el = document.documentElement
+    el.classList.remove('crowd-cheer', 'crowd-boo', 'crowd-l1', 'crowd-l2', 'crowd-l3')
+    void el.offsetWidth
+    el.classList.add(kind === 'cheer' ? 'crowd-cheer' : 'crowd-boo', `crowd-l${level}`)
+    window.clearTimeout(crowdTimer.id)
+    crowdTimer.id = window.setTimeout(() => el.classList.remove('crowd-cheer', 'crowd-boo', 'crowd-l1', 'crowd-l2', 'crowd-l3'), ms)
   },
   /** Camera shake on the whole stage. */
   quake(ms = 520) {

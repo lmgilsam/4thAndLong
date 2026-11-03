@@ -100,6 +100,7 @@ export function Drive({ session, initial, onComplete }: {
 
   function celebrateHit(tier: number, color: string) {
     sound.hit(tier)
+    if (tier >= 3) fx.crowd('cheer', tier - 2)
     if (tier >= 3) {
       fx.confetti({ colors: [color, '#f2efe4', '#ffb627'], count: tier === 3 ? 40 : tier === 4 ? 80 : 150, y: 0.42, power: 0.7 + tier * 0.12, footballs: tier === 5 })
     }
@@ -135,8 +136,9 @@ export function Drive({ session, initial, onComplete }: {
     }
     const nextGuesses = [...guesses, raw]
     if (nextGuesses.length >= DOWNS_PER_PLAY) {
-      sound.buzzer()
+      sound.turnover()
       fx.flash('#ff3b30', 0.22)
+      fx.crowd('boo', 1, 2600)
       finishPlay({ promptId: prompt.id, outcome: 'turnover', points: 0, yards: 0, guesses: nextGuesses })
       return
     }
@@ -268,7 +270,7 @@ export function Drive({ session, initial, onComplete }: {
           {revealMeta.tier && revealMeta.tier >= 3 && <div className="reveal-burst" aria-hidden="true" />}
           <RouteArt tier={revealMeta.tier} color={revealMeta.color} miss={revealMeta.miss} />
           <h2 className="reveal-title">{revealMeta.title}</h2>
-          <p className="reveal-answer">{revealing.answerName ? `“${revealing.answerName}”` : '—'}</p>
+          {revealing.answerName && <p className="reveal-answer">“{revealing.answerName}”</p>}
           <p className="reveal-gain">
             <span className="pts">+{shownPts} PTS</span> · <span>+{revealing.yards} YDS</span>
           </p>

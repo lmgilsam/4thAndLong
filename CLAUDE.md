@@ -141,7 +141,9 @@ When a name is picked, update: `GAME_NAME` / `GAME_SUBTITLE` / `SHARE_URL` in `s
 
 ## Feel: sound and effects
 
-- Sounds (`src/lib/sound.ts`): button click, READY/SET/HUT cadence, whistle at the snap, ticks in the last 5 seconds, thud on a wrong answer, buzzer on turnover or delay of game, a chime with one note per tier plus crowd noise (air horn on House Call), and touchdown / field goal / punt stingers on the results screen. Mute toggle sits top right.
+- Sounds (`src/lib/sound.ts`): button click, READY/SET/HUT cadence, whistle at the snap, ticks in the last 5 seconds, thud on a wrong answer, buzzer on delay of game, and touchdown / field goal / punt stingers on the results screen. Mute toggle sits top right.
+- Crowd: correct answers get a chime (one note per tier) plus a crowd that scales with rarity: Checkdown silent, Slant light applause, Chunk Play a cheer, Deep Ball a big cheer, House Call the whole stadium plus an air horn. Turnover on Downs gets a short buzzer and boos. Crowd sounds are built from noise + vowel-filtered "voices" + claps (`cheer()`, `boo()`, `claps()`).
+- Crowd on screen (`fx.crowd`): on a cheer the dark drive overlay lifts, the stands bounce and camera flashes fire; on boos the stands dim and the flashes stop.
 - Visuals: stadium lights flicker on, haze beams, crowd camera flashes, title slam, hero button shine, score count-up, ball arc and "+N" yard pop, red vignette when the clock is under 5, confetti for Chunk Play and up (footballs on House Call), screen shake on House Call and Touchdown.
 - The results celebration only plays right after a drive ends (`celebrate` in App), not when reopening a finished drive.
 

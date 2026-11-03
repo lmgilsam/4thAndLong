@@ -111,6 +111,7 @@ export function Results({ state, prompts, label, stats, mode, celebrate = false,
     if (outcome.kind === 'td') {
       later(150, () => {
         sound.touchdown()
+        fx.crowd('cheer', 3, 3800)
         fx.flash('#ffc845', 0.35)
         fx.quake()
       })
@@ -119,6 +120,7 @@ export function Results({ state, prompts, label, stats, mode, celebrate = false,
         later(200 + i * 380, () => fx.confetti({ colors, count: 90, x, y, power: 1.1, spread: 85, footballs: true })))
     } else if (outcome.kind === 'fg') {
       later(150, () => sound.fieldGoal())
+      later(450, () => fx.crowd('cheer', 2, 2600))
       later(520, () => fx.confetti({ colors: ['#8be36b', '#f2efe4', '#ffb627'], count: 90, y: 0.3, power: 1 }))
     } else {
       later(150, () => sound.punt())
