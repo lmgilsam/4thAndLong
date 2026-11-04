@@ -5,9 +5,9 @@
 //
 // Keys: H helmet, h helmet stripe, M facemask, S skin, s skin shade,
 //       J jersey, j jersey shade, N jersey number, P pants, p pants shade,
-//       K socks, B cleats, '.' empty
+//       K socks, B cleats, F football, f football shade, L laces, '.' empty
 
-export type Pose = 'stand' | 'ready' | 'stance' | 'run' | 'block'
+export type Pose = 'stand' | 'ready' | 'stance' | 'run' | 'block' | 'hold'
 
 export const SPRITES: Record<Pose, string[]> = {
   // Upright skill player (QB, WR, safety)
@@ -94,6 +94,27 @@ export const SPRITES: Record<Pose, string[]> = {
     '.KK.......KK..',
     'BBB.......BBB.',
   ],
+  // QB with the ball tucked against his chest in both hands
+  hold: [
+    '....HHHH....',
+    '...HHHHHH...',
+    '..HhHHHHHH..',
+    '..HhHHHSSM..',
+    '..HhHHHSSM..',
+    '...HHHSSs...',
+    '..JJJJJJJJ..',
+    '.JJJJJJJJJJ.',
+    '.JjJJJJFFSS.',
+    '.JjJJJFFLFS.',
+    '.SjJJFFLFfJ.',
+    '.SSSSSffJJ..',
+    '...JJJJJJ...',
+    '...PPPPPP...',
+    '...PPppPP...',
+    '...PP..PP...',
+    '...KK..KK...',
+    '..BBB..BBB..',
+  ],
   // Mid-stride, leaning forward
   run: [
     '.....HHHH...',
@@ -152,7 +173,7 @@ export function spriteUrl(pose: Pose, team: TeamColors, skin: number): { url: st
   let url = cache.get(key)
   if (!url) {
     const [S, s] = SKINS[skin % SKINS.length]
-    const colors: Record<string, string> = { ...team, S, s }
+    const colors: Record<string, string> = { ...team, S, s, F: '#9a5528', f: '#4e2610', L: '#f2efe4' }
     let rects = ''
     rows.forEach((row, y) => {
       // Merge runs of the same color into one rect to keep the SVG small.
