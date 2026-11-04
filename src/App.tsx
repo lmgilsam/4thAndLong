@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { GAME_NAME, GAME_SUBTITLE } from './config'
 import { Drive, totals, type Session } from './components/Drive'
 import { Effects } from './components/Effects'
+import { Teams } from './components/Teams'
 import { HowToPlay } from './components/HowToPlay'
 import { Results } from './components/Results'
 import { dateForDrive, driveNumber, getPrompt, promptsForDrive, randomPractice, todayKey } from './engine/schedule'
@@ -110,7 +111,7 @@ export default function App() {
 
   return (
     <div className={`app view-${view}`}>
-      <Stadium />
+      <Stadium teams={view === 'home'} />
       <main className="stage">
         {view === 'home' && (
           <Home
@@ -216,7 +217,7 @@ const FLASHBULBS = Array.from({ length: 26 }, (_, i) => {
   return { left: `${(r(1) * 100).toFixed(1)}%`, top: `${(r(2) * 100).toFixed(1)}%`, delay: `${(r(3) * 9).toFixed(2)}s`, dur: `${(6 + r(4) * 7).toFixed(2)}s` }
 })
 
-function Stadium() {
+function Stadium({ teams }: { teams: boolean }) {
   return (
     <div className="stadium" aria-hidden="true">
       <div className="sky" />
@@ -232,6 +233,7 @@ function Stadium() {
       <div className="field-perspective">
         <div className="field-plane" />
       </div>
+      {teams && <Teams />}
     </div>
   )
 }

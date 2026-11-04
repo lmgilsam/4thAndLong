@@ -69,6 +69,8 @@ public/sounds/           crowd-cheer.mp3, the recorded crowd used in big cheers
 src/lib/fx.ts            Effects bus: fx.confetti / fx.flash / fx.quake (skipped for reduced motion)
 src/lib/useCountUp.ts    Scoreboard-style number tick-up hook
 src/components/Effects.tsx  Full-screen confetti canvas + flash overlay, mounted once in App
+src/components/Teams.tsx    Home-page field: two pixel-art teams at the 50 running a looping pass play
+src/components/sprites.ts   The original 8-bit player sprites (pixel grids), team colors, skin tones
 scripts/schedule-lock.json  Frozen prompt ids for every drive already played
 src/App.tsx              Views (home / drive / results), daily vs practice sessions
 src/components/          Drive, Results (share text, histogram), Scoreboard, FieldStrip, HowToPlay, RouteArt
@@ -146,6 +148,7 @@ When a name is picked, update: `GAME_NAME` / `GAME_SUBTITLE` / `SHARE_URL` in `s
 - Crowd: correct answers get a chime (one note per tier) plus a crowd that scales with rarity: Checkdown silent, Slant light applause, Chunk Play a cheer, Deep Ball a big cheer, House Call the whole stadium plus an air horn. Turnover on Downs gets a short buzzer and boos. Chunk Play and the boos are fully synthesized (noise + vowel-filtered "voices" + claps). Deep Ball, House Call, Touchdown and Field Goal are built on a real crowd recording, `public/sounds/crowd-cheer.mp3` (from Pixabay, free to use under the Pixabay Content License, no attribution needed; trimmed to 7s, normalized to -16 LUFS), with the synth roar, claps and air horn mixed underneath. The recording loads after the first sound plays; if it hasn't loaded or fails, `cheer()` falls back to the synth-only version.
 - Crowd on screen (`fx.crowd`): on a cheer the dark drive overlay lifts, the stands bounce and camera flashes fire; on boos the stands dim and the flashes stop.
 - Visuals: stadium lights flicker on, haze beams, crowd camera flashes, title slam, hero button shine, score count-up, ball arc and "+N" yard pop, red vignette when the clock is under 5, confetti for Chunk Play and up (footballs on House Call), screen shake on House Call and Touchdown.
+- Home field (`Teams.tsx`): 11 gold (offense, left) vs 11 crimson (defense, right) at the line of scrimmage, seen from the sideline. An 11-second loop: pre-snap idle, snap, QB drop, receivers and corners run, a throw to the far receiver, fade and reset. Sprites are original art "inspired by" chunky retro football games; don't copy Retro Bowl's actual sprites. Players are placed in 2D with the same perspective math as the turf (520px perspective, 62deg tilt) because CSS 3D transforms blur pixel art. On short screens the formation pulls back so the nearest player stays above the home buttons. Reduced motion: players stand still.
 - The results celebration only plays right after a drive ends (`celebrate` in App), not when reopening a finished drive.
 
 ## Next up

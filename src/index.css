@@ -81,6 +81,23 @@ h1, h2, h3, p { margin: 0; }
   content: ''; position: absolute; inset: 0; background: rgba(5, 10, 7, 0.72);
 }
 
+/* ---------- Home field: two teams at the line (Teams.tsx) ---------- */
+/* Players are positioned by JS (2D perspective) so pixel art stays crisp. */
+.teams { position: absolute; inset: 0; pointer-events: none; opacity: 0; }
+.teams .pl { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.teams .pl img, .teams .pl svg { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; display: block; }
+.teams .pl img { filter: brightness(0.88) drop-shadow(0 1px 0 rgba(0, 0, 0, 0.4)); }
+.teams .pl.flip img { transform: scaleX(-1); }
+.teams .pl .f-run { opacity: 0; }
+.teams .pl.running .f-base { opacity: 0; }
+.teams .pl.running .f-run { opacity: 1; animation: stride 0.22s steps(1, end) infinite; }
+@keyframes stride { 50% { translate: 0 -1px; } }
+/* Pre-snap idle: everyone shifts their weight a little. */
+.teams .pl.bob-a img { animation: idle-bob 1.1s steps(2, jump-none) infinite; }
+.teams .pl.bob-b img { animation: idle-bob 1.3s steps(2, jump-none) infinite reverse; }
+@keyframes idle-bob { from { translate: 0 0; } to { translate: 0 -1px; } }
+.teams .pl-ball { z-index: 9999; opacity: 0; }
+
 /* ---------- Layout ---------- */
 .app { position: relative; min-height: 100dvh; }
 .stage {
@@ -518,4 +535,5 @@ h1, h2, h3, p { margin: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+  .teams .pl img { animation: none !important; }
 }
