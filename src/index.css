@@ -92,8 +92,13 @@ h1, h2, h3, p { margin: 0; }
 .teams .pl:not([data-frame=""])[data-frame] img[data-f="base"] { opacity: 0; }
 .teams .pl[data-frame="run"] img[data-f="run"],
 .teams .pl[data-frame="block"] img[data-f="block"],
-.teams .pl[data-frame="hold"] img[data-f="hold"] { opacity: 1; }
-.teams .pl[data-frame="run"] img[data-f="run"] { animation: stride 0.22s steps(1, end) infinite; }
+.teams .pl[data-frame="hold"] img[data-f="hold"],
+.teams .pl[data-frame="windup"] img[data-f="windup"],
+.teams .pl[data-frame="follow"] img[data-f="follow"],
+.teams .pl[data-frame="reach"] img[data-f="reach"],
+.teams .pl[data-frame="carry"] img[data-f="carry"] { opacity: 1; }
+.teams .pl[data-frame="run"] img[data-f="run"],
+.teams .pl[data-frame="carry"] img[data-f="carry"] { animation: stride 0.22s steps(1, end) infinite; }
 @keyframes stride { 50% { translate: 0 -1px; } }
 /* Pre-snap idle: everyone shifts their weight a little. */
 .teams .pl.bob-a img { animation: idle-bob 1.1s steps(2, jump-none) infinite; }
