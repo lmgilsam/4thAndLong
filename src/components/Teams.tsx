@@ -4,8 +4,10 @@ import { CRIMSON, GOLD, spriteUrl, type Pose, type TeamColors } from './sprites'
 
 // Two teams lined up at the 50 on the home-page field, seen from the sideline.
 // Gold (offense) on the left faces right; crimson (defense) on the right faces
-// left. Every loop they run one pass play: snap, QB drop, receivers go deep,
-// a throw to the far receiver, then the scene fades and resets.
+// left. Every loop they run one pass play: the center snaps the ball back to
+// the QB in the shotgun, the lines rise out of their stances and lock up face
+// to face, the QB drops, receivers go deep, the ball is thrown to the far
+// receiver, then the scene fades and resets.
 //
 // The turf is a CSS 3D plane, but 3D transforms blur pixel art, so players are
 // placed in 2D using the same perspective math as the turf (.field-perspective:
@@ -32,10 +34,10 @@ const OFFENSE: Spot[] = [
 ]
 
 const DEFENSE: Spot[] = [
-  { x: 1.2, z: -1.8, pose: 'stance', role: 'dl', skin: 4 },
-  { x: 1.2, z: -0.6, pose: 'stance', role: 'dl', skin: 2 },
-  { x: 1.2, z: 0.6, pose: 'stance', role: 'dl', skin: 3 },
-  { x: 1.2, z: 1.8, pose: 'stance', role: 'dl', skin: 0 },
+  { x: 1.2, z: -1.2, pose: 'stance', role: 'dl', skin: 4 },
+  { x: 1.2, z: 0, pose: 'stance', role: 'dl', skin: 2 },
+  { x: 1.2, z: 1.2, pose: 'stance', role: 'dl', skin: 3 },
+  { x: 1.2, z: 2.4, pose: 'stance', role: 'dl', skin: 0 },
   { x: 4.8, z: -2.8, pose: 'ready', role: 'lb', skin: 1 },
   { x: 4.6, z: 0.4, pose: 'ready', role: 'lb', skin: 4 },
   { x: 4.8, z: 3.2, pose: 'ready', role: 'lb', skin: 2 },
@@ -57,25 +59,44 @@ const ease = (v: number) => 1 - Math.pow(1 - clamp01(v), 2)
 const prog = (t: number, a: number, b: number) => ease((t - a) / (b - a))
 const lin = (t: number, a: number, b: number) => clamp01((t - a) / (b - a))
 
-/** How far each role has moved (yards) at time t in the loop. */
-function offset(role: Role, t: number): [number, number] {
-  if (t < SNAP) return [0, 0]
+/** Sprite columns between an engaged lineman's center and the line of scrimmage. */
+const ENGAGE = 5
+const LOCK = 0.3 // seconds for the lines to come out of their stances and meet
+
+interface Move {
+  dx: number // yards along the field
+  dz: number // yards across the field
+  ux?: number // extra sprite pixels along the field (for linemen meeting exactly)
+  frame?: 'run' | 'block'
+}
+
+/** Where each player is relative to his starting spot at time t in the loop. */
+function move(s: Spot, t: number): Move {
+  if (t < SNAP) return { dx: 0, dz: 0 }
   const live = t < WHISTLE ? 1 : 0
-  switch (role) {
-    case 'ol': return [0.6 * prog(t, SNAP, SNAP + 0.7) + 0.12 * Math.sin(t * 11) * live, 0]
-    case 'te': return [5 * prog(t, SNAP, WHISTLE), 3 * prog(t, SNAP, WHISTLE)]
-    case 'dl': return [-0.5 * prog(t, SNAP, SNAP + 0.5) - 0.12 * Math.sin(t * 11) * live, 0]
-    case 'qb': return [-3 * prog(t, SNAP, SNAP + 1.1), 0]
-    case 'rb': return [-1 * prog(t, SNAP, SNAP + 1), -1.2 * prog(t, SNAP, SNAP + 1)]
-    case 'wr': case 'wrFar': return [14 * lin(t, SNAP, WHISTLE), 0]
-    case 'cb': case 'cbFar': return [12 * lin(t, SNAP + 0.25, WHISTLE), 0]
-    case 'lb': return [3 * prog(t, SNAP, SNAP + 2.2), 0]
-    case 'saf': return [5 * prog(t, SNAP, WHISTLE), -6.5 * prog(t, SNAP, WHISTLE)]
+  switch (s.role) {
+    case 'ol': case 'dl': {
+      // Both lines fire out and meet at the ball, then push and pull together.
+      const side = s.role === 'ol' ? -1 : 1
+      const e = prog(t, SNAP, SNAP + LOCK)
+      const drive = 1.6 * prog(t, SNAP + LOCK, WHISTLE)
+      const tussle = 0.9 * Math.sin(t * 7 + s.z * 2.3) * live * e
+      const help = s.role === 'ol' && s.z < -2 ? 0.6 * e : 0 // the uncovered guard helps inside
+      return { dx: -s.x * e, dz: help, ux: side * ENGAGE * e + drive + tussle, frame: t > SNAP + 0.08 ? 'block' : undefined }
+    }
+    case 'te': return { dx: 5 * prog(t, SNAP, WHISTLE), dz: 3 * prog(t, SNAP, WHISTLE), frame: live ? 'run' : undefined }
+    case 'qb': return { dx: -3 * prog(t, SNAP + 0.25, SNAP + 1.3), dz: 0 }
+    case 'rb': return { dx: 0.6 * prog(t, SNAP, SNAP + 0.8), dz: -1.1 * prog(t, SNAP, SNAP + 0.8), frame: t > SNAP + 0.5 ? 'block' : undefined }
+    case 'wr': case 'wrFar': return { dx: 14 * lin(t, SNAP, WHISTLE), dz: 0, frame: live ? 'run' : undefined }
+    case 'cb': case 'cbFar': return { dx: 12 * lin(t, SNAP + 0.25, WHISTLE), dz: 0, frame: live && t > SNAP + 0.25 ? 'run' : undefined }
+    case 'lb': return { dx: 3 * prog(t, SNAP, SNAP + 2.2), dz: 0 }
+    case 'saf': return { dx: 5 * prog(t, SNAP, WHISTLE), dz: -6.5 * prog(t, SNAP, WHISTLE), frame: live ? 'run' : undefined }
   }
 }
 
-/** These switch to the running frame while the play is live. */
+/** Which extra frames each role needs. */
 const RUNNERS = new Set<Role>(['wr', 'wrFar', 'cb', 'cbFar', 'saf', 'te'])
+const BLOCKERS = new Set<Role>(['ol', 'dl', 'rb'])
 
 // Perspective of the turf (.field-perspective / .field-plane in index.css).
 const PERSPECTIVE = 520
@@ -114,11 +135,11 @@ function layout(): Layout {
   return L
 }
 
-/** Screen position and scale for a point on the turf. */
-function project(L: Layout, x: number, z: number) {
+/** Screen position and scale for a point on the turf (ux = extra sprite pixels along the field). */
+function project(L: Layout, x: number, z: number, ux = 0) {
   const d = L.d0 + z * L.depthUnit
   const k = PERSPECTIVE / (PERSPECTIVE - d * SIN)
-  return { sx: L.W / 2 + x * L.yard * k, sy: L.top + d * COS * k, k }
+  return { sx: L.W / 2 + (x * L.yard + ux * L.px) * k, sy: L.top + d * COS * k, k }
 }
 
 interface Actor { spot: Spot; team: TeamColors; flip: boolean }
@@ -127,7 +148,37 @@ const ACTORS: Actor[] = [
   ...DEFENSE.map((spot) => ({ spot, team: CRIMSON, flip: true })),
 ]
 const QB = OFFENSE.find((s) => s.role === 'qb')!
+const CENTER = OFFENSE.find((s) => s.role === 'ol' && s.z === 0)!
 const TARGET = OFFENSE.find((s) => s.role === 'wrFar')!
+const SNAP_FLIGHT = 0.32 // seconds for the shotgun snap to reach the QB
+
+/** A point where a player's hands are: [x yards, z yards, ux sprite px, lift sprite px]. */
+type BallSpot = [number, number, number, number]
+function hands(s: Spot, t: number, ux = 3, lift = 9): BallSpot {
+  const m = move(s, t)
+  return [s.x + m.dx, s.z + m.dz, (m.ux ?? 0) + ux, lift]
+}
+const mix = (a: BallSpot, b: BallSpot, f: number): BallSpot => a.map((v, i) => v + (b[i] - v) * f) as BallSpot
+
+/** The ball's whole path: under the center, snapped to the QB, carried on the drop, thrown, caught. */
+function ballAt(t: number): BallSpot {
+  const atCenter: BallSpot = [CENTER.x, CENTER.z, 6, 0.5]
+  if (t < SNAP) return atCenter
+  if (t < SNAP + SNAP_FLIGHT) {
+    const f = (t - SNAP) / SNAP_FLIGHT
+    const p = mix(atCenter, hands(QB, t), f)
+    p[3] += 4 * Math.sin(Math.PI * f)
+    return p
+  }
+  if (t < THROW) return hands(QB, t)
+  if (t < CATCH) {
+    const f = (t - THROW) / (CATCH - THROW)
+    const p = mix(hands(QB, THROW), hands(TARGET, CATCH), f)
+    p[3] += 24 * Math.sin(Math.PI * f)
+    return p
+  }
+  return hands(TARGET, t)
+}
 
 export function Teams() {
   const root = useRef<HTMLDivElement>(null)
@@ -150,24 +201,20 @@ export function Teams() {
       el.style.opacity = String(still ? 1 : Math.min(clamp01(t / 0.5), clamp01((LOOP - t) / 0.8)))
       players.forEach((p, i) => {
         const a = ACTORS[i]
-        const [dx, dz] = offset(a.spot.role, t)
-        const { sx, sy, k } = project(L, a.spot.x + dx, a.spot.z + dz)
+        const m = move(a.spot, t)
+        const { sx, sy, k } = project(L, a.spot.x + m.dx, a.spot.z + m.dz, m.ux)
         p.style.transform = `translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px) scale(${(k * L.px).toFixed(3)}) translate(-50%, -100%)`
-        p.style.zIndex = String(Math.round(sy))
-        p.classList.toggle('running', RUNNERS.has(a.spot.role) && t > SNAP && t < WHISTLE)
+        // Defense draws over offense at the same depth, so engaged pairs layer consistently.
+        p.style.zIndex = String(Math.round(sy) * 2 + (a.flip ? 1 : 0))
+        p.classList.toggle('running', m.frame === 'run')
+        p.classList.toggle('blocking', m.frame === 'block')
       })
-      // The pass: from the QB's drop spot to where the far receiver is at the catch.
-      if (!still && t > THROW && t < CATCH) {
-        const f = (t - THROW) / (CATCH - THROW)
-        const fromX = QB.x - 3
-        const toX = TARGET.x + offset('wrFar', CATCH)[0]
-        const { sx, sy, k } = project(L, fromX + (toX - fromX) * f, QB.z + (TARGET.z - QB.z) * f)
-        const lift = (12 + 24 * Math.sin(Math.PI * f)) * L.px * k
-        ball.style.opacity = '1'
-        ball.style.transform = `translate(${sx.toFixed(1)}px, ${(sy - lift).toFixed(1)}px) scale(${(k * L.px).toFixed(3)}) rotate(${(-25 + 50 * f).toFixed(0)}deg) translate(-50%, -50%)`
-      } else {
-        ball.style.opacity = '0'
-      }
+      const [bx, bz, bux, lift] = ballAt(t)
+      const b = project(L, bx, bz, bux)
+      const flying = t > THROW && t < CATCH
+      const spin = flying ? -25 + 50 * ((t - THROW) / (CATCH - THROW)) : 0
+      ball.style.transform = `translate(${b.sx.toFixed(1)}px, ${(b.sy - lift * L.px * b.k).toFixed(1)}px) scale(${(b.k * L.px).toFixed(3)}) rotate(${spin.toFixed(0)}deg) translate(-50%, -50%)`
+      ball.style.zIndex = String(flying || (t > SNAP && t < SNAP + SNAP_FLIGHT) ? 99999 : Math.round(b.sy) * 2 + 2)
       if (!still) loop.raf = requestAnimationFrame(frame)
     }
     loop.raf = requestAnimationFrame(frame)
@@ -179,10 +226,12 @@ export function Teams() {
       {ACTORS.map((a, i) => {
         const base = spriteUrl(a.spot.pose, a.team, a.spot.skin)
         const run = RUNNERS.has(a.spot.role) ? spriteUrl('run', a.team, a.spot.skin) : null
+        const block = BLOCKERS.has(a.spot.role) ? spriteUrl('block', a.team, a.spot.skin) : null
         return (
           <div key={i} className={`pl ${a.flip ? 'flip' : ''} ${i % 2 ? 'bob-b' : 'bob-a'}`} style={{ width: base.w, height: base.h }}>
             <img src={base.url} alt="" className="f-base" draggable={false} />
             {run && <img src={run.url} alt="" className="f-run" draggable={false} />}
+            {block && <img src={block.url} alt="" className="f-block" style={{ width: block.w, height: block.h, left: '50%', top: 'auto', bottom: 0, marginLeft: -block.w / 2 }} draggable={false} />}
           </div>
         )
       })}

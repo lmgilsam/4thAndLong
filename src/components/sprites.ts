@@ -7,7 +7,7 @@
 //       J jersey, j jersey shade, N jersey number, P pants, p pants shade,
 //       K socks, B cleats, '.' empty
 
-export type Pose = 'stand' | 'ready' | 'stance' | 'run'
+export type Pose = 'stand' | 'ready' | 'stance' | 'run' | 'block'
 
 export const SPRITES: Record<Pose, string[]> = {
   // Upright skill player (QB, WR, safety)
@@ -72,6 +72,27 @@ export const SPRITES: Record<Pose, string[]> = {
     '..KK....KK....',
     '..KK....KK....',
     '.BBB...BBB....',
+  ],
+  // Engaged block: upright, leaning in, arms locked out into the man across
+  block: [
+    '......HHHH....',
+    '.....HHHHHH...',
+    '....HhHHHHHH..',
+    '....HhHHHSSM..',
+    '....HhHHHSSM..',
+    '.....HHHSSs...',
+    '...JJJJJJJJ...',
+    '..JJJJJJJJJSSS',
+    '..JjJJNNNJJJSS',
+    '..JjJJNJNJJ...',
+    '..jJJJNNNJ....',
+    '..JJJJJJJJ....',
+    '..PPPPPPPP....',
+    '.PPPp...PPP...',
+    '.PPP.....PP...',
+    '.KK.......KK..',
+    '.KK.......KK..',
+    'BBB.......BBB.',
   ],
   // Mid-stride, leaning forward
   run: [
