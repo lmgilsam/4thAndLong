@@ -1,23 +1,27 @@
 import { useEffect, useRef } from 'react'
-import { reducedMotion } from '../lib/fx'
+import { fx, reducedMotion } from '../lib/fx'
 import { CRIMSON, GOLD, spriteUrl, type BasePose, type CycleName, type Pose, type TeamColors } from './sprites'
 
-// Two teams lined up at the 50 on the home-page field, seen from the sideline.
-// Gold (offense) on the left faces right; crimson (defense) on the right faces
-// left. Every loop they run one pass play: the center snaps the ball back to
-// the QB in the shotgun, the lines rise out of their stances and lock up face
-// to face, the QB drops with the ball at his chest, winds up, throws and
-// follows through, the near receiver reaches up, makes the catch and tucks
-// it as he runs, then the scene fades and resets.
+// The home-page field: gold (offense, left, going right) drives on crimson.
+// Four plays in a row, seen from the sideline. Each play keeps the same
+// blocking and QB motion (snap, drop, windup, throw, follow-through) but the
+// receivers run different routes and the ball goes to a different man. The
+// ball is spotted where each play ends and the camera pans to the new line of
+// scrimmage. Play 4 is a touchdown: everyone on offense jumps and cheers, then
+// the drive starts over.
 //
-// The turf is a CSS 3D plane, but 3D transforms blur pixel art, so players are
-// placed in 2D using the same perspective math as the turf (.field-perspective:
-// perspective 520px, rotateX 62deg). That keeps every sprite pixel crisp.
+// The field (stripes, yard lines, end zone, line of scrimmage, line to gain) is
+// drawn here in SVG so it can scroll with the camera. 3D CSS would blur the
+// pixel art, so everything is projected in 2D with the same perspective as the
+// stadium turf (520px perspective, 62deg tilt).
 //
-// Positions are in yards: x along the field (0 = line of scrimmage, + = toward
-// the defense), z across it (0 = middle of the formation, + = nearer the camera).
+// Units: x in yards. Field x runs 0 (gold's goal line) to 100 (crimson's goal
+// line); the end zone the offense attacks is 100..110. Player spots are relative
+// to the line of scrimmage. z is across the field (0 = middle of the formation,
+// + = nearer the camera).
 
-type Role = 'ol' | 'te' | 'qb' | 'rb' | 'wr' | 'wrFar' | 'wrNear' | 'dl' | 'lb' | 'cb' | 'cbFar' | 'saf'
+type Role = 'ol' | 'te' | 'qb' | 'rb' | 'wrFar' | 'wrSlot' | 'wrNear' | 'dl' | 'lb' | 'cbFar' | 'cbSlot' | 'cbNear' | 'saf'
+type Receiver = 'wrFar' | 'wrSlot' | 'wrNear' | 'te'
 interface Spot { x: number; z: number; pose: BasePose; role: Role; skin: number }
 
 const OFFENSE: Spot[] = [
@@ -30,8 +34,8 @@ const OFFENSE: Spot[] = [
   { x: -5, z: 0.3, pose: 'stand', role: 'qb', skin: 0 },
   { x: -5.6, z: 2, pose: 'ready', role: 'rb', skin: 4 },
   { x: -1.5, z: -9, pose: 'ready', role: 'wrFar', skin: 3 },
-  { x: -1.8, z: -5.5, pose: 'ready', role: 'wr', skin: 2 },
-  { x: -1.5, z: 6.5, pose: 'ready', role: 'wrNear', skin: 4 }, // the target
+  { x: -1.8, z: -5.5, pose: 'ready', role: 'wrSlot', skin: 2 },
+  { x: -1.5, z: 6.5, pose: 'ready', role: 'wrNear', skin: 4 },
 ]
 
 const DEFENSE: Spot[] = [
@@ -43,146 +47,332 @@ const DEFENSE: Spot[] = [
   { x: 4.6, z: 0.4, pose: 'ready', role: 'lb', skin: 4 },
   { x: 4.8, z: 3.2, pose: 'ready', role: 'lb', skin: 2 },
   { x: 6, z: -9, pose: 'ready', role: 'cbFar', skin: 3 },
-  { x: 5.2, z: -5.5, pose: 'ready', role: 'cb', skin: 0 },
-  { x: 6, z: 6.5, pose: 'ready', role: 'cb', skin: 4 },
+  { x: 5.2, z: -5.5, pose: 'ready', role: 'cbSlot', skin: 0 },
+  { x: 6, z: 6.5, pose: 'ready', role: 'cbNear', skin: 4 },
   { x: 10, z: -1.5, pose: 'stand', role: 'saf', skin: 1 },
 ]
 
-const LOOP = 11 // seconds
-const SNAP = 0.45 * LOOP
-const WHISTLE = 0.8 * LOOP
-const THROW = 0.62 * LOOP
-const CATCH = 0.74 * LOOP
+const spotOf = (role: Role) => OFFENSE.find((s) => s.role === role) ?? DEFENSE.find((s) => s.role === role)!
+const QB = spotOf('qb')
+const CENTER = OFFENSE.find((s) => s.role === 'ol' && s.z === 0)!
+/** Man coverage: each corner shadows one receiver. */
+const MAN: Partial<Record<Role, Receiver>> = { cbFar: 'wrFar', cbSlot: 'wrSlot', cbNear: 'wrNear' }
+
+// ---------------------------------------------------------------- the plays
+
+type Path = [number, number][] // route waypoints (dx, dz) from the receiver's spot
+
+interface PlayDef {
+  name: string
+  target: Receiver
+  /** Yards along the target's route where he makes the catch. */
+  catchAt: number
+  routes: Record<Receiver, Path>
+}
+
+// Routes end where each receiver stops; the target's route includes his run after the catch.
+const PLAYS: PlayDef[] = [
+  { name: 'slant', target: 'wrSlot', catchAt: 7.5, routes: {
+    wrSlot: [[2, 0], [8, 4], [14, 5.5]],
+    wrFar: [[16, 0]],
+    wrNear: [[9, 0], [7.5, -0.6]],
+    te: [[1, 0], [4, 2]],
+  } },
+  { name: 'seam', target: 'te', catchAt: 10, routes: {
+    te: [[13.5, 0]],
+    wrFar: [[8, 0], [15, 3.5]],
+    wrSlot: [[6, 0], [6.5, -4]],
+    wrNear: [[16, 0]],
+  } },
+  { name: 'out', target: 'wrNear', catchAt: 13.2, routes: {
+    wrNear: [[12, 0], [13, 2], [16, 2.5]],
+    wrFar: [[12, 0], [10.5, 0.5]],
+    wrSlot: [[9, 0], [9.5, 6]],
+    te: [[3, 0], [4, -4]],
+  } },
+  { name: 'post (touchdown)', target: 'wrFar', catchAt: 20, routes: {
+    wrFar: [[7, 0], [22, 5.5]],
+    wrSlot: [[10, 0], [10, -3]],
+    wrNear: [[6, 0], [6, -3]],
+    te: [[2, 0], [5, 2.5]],
+  } },
+]
+
+const START_LOS = 45 // gold's own 45
+const SPEED: Record<Receiver, number> = { wrFar: 3.8, wrSlot: 3.8, wrNear: 3.8, te: 3.2 } // yards per second
+
+// ---------------------------------------------------------------- timing
+
+const PRE = 2.4 // seconds lined up before the snap (fade in over the first FADE)
+const FADE = 0.45
+const POST = 0.8 // after the whistle
+const CELEBRATE = 3.4 // after the touchdown whistle
+const PAN = 1.1 // camera moves to the next line of scrimmage while players are hidden
+const SNAP = PRE
 const SNAP_FLIGHT = 0.32 // seconds for the shotgun snap to reach the QB
-const WINDUP = 0.3 // seconds the QB spends cocking the ball before release
-const FOLLOW = 0.7 // seconds of follow-through after release
-const REACH = 0.35 // seconds the receiver reaches for the ball before it arrives
+const WINDUP = 0.3 // QB cocking the ball before release
+const FOLLOW = 0.7 // follow-through after release
+const REACH = 0.35 // receiver reaches for the ball before it arrives
+const LOCK = 0.3 // lines come out of their stances and meet
+const ENGAGE = 5 // sprite px between an engaged lineman's center and the line
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
 const ease = (v: number) => 1 - Math.pow(1 - clamp01(v), 2)
-/** Progress from a to b seconds, eased. */
 const prog = (t: number, a: number, b: number) => ease((t - a) / (b - a))
-const lin = (t: number, a: number, b: number) => clamp01((t - a) / (b - a))
+const lerp = (a: number, b: number, f: number) => a + (b - a) * f
 
-/** Sprite columns between an engaged lineman's center and the line of scrimmage. */
-const ENGAGE = 5
-const LOCK = 0.3 // seconds for the lines to come out of their stances and meet
+function pathLength(p: Path): number {
+  let len = 0
+  let prev: [number, number] = [0, 0]
+  for (const pt of p) { len += Math.hypot(pt[0] - prev[0], pt[1] - prev[1]); prev = pt }
+  return len
+}
 
-/**
- * What a player is doing. 'run', 'carry' and 'reach' play the 4-frame running
- * cycle while he's moving; 'hold' turns into the running-with-the-ball cycle
- * when the QB is on the move. The cycle advances with distance covered, so
- * faster players stride faster and feet never slide.
- */
-type Frame = 'run' | 'block' | 'hold' | 'windup' | 'follow' | 'reach' | 'carry'
+/** Point `dist` yards along a route (starting at the receiver's spot). */
+function along(p: Path, dist: number): [number, number] {
+  let prev: [number, number] = [0, 0]
+  let left = Math.max(0, dist)
+  for (const pt of p) {
+    const seg = Math.hypot(pt[0] - prev[0], pt[1] - prev[1])
+    if (left <= seg) {
+      const f = seg ? left / seg : 0
+      return [lerp(prev[0], pt[0], f), lerp(prev[1], pt[1], f)]
+    }
+    left -= seg
+    prev = pt
+  }
+  return prev
+}
+
+interface Sched {
+  play: PlayDef
+  index: number
+  los: number
+  start: number // global seconds when this play fades in
+  catchT: number // local seconds (from start)
+  throwT: number
+  whistle: number
+  end: number // local: players fully faded out
+  drop: number // yards the QB drops
+  dropEnd: number
+  td: boolean
+}
+
+/** Lays out the whole drive: when each play happens and where the ball is spotted. */
+function buildDrive(): { plays: Sched[]; loop: number } {
+  const plays: Sched[] = []
+  let los = START_LOS
+  let start = 0
+  PLAYS.forEach((play, index) => {
+    const target = spotOf(play.target)
+    const route = play.routes[play.target]
+    const v = SPEED[play.target]
+    const catchT = SNAP + play.catchAt / v
+    const [cx, cz] = along(route, play.catchAt)
+    const throwDist = Math.hypot(target.x + cx - (QB.x - 3), target.z + cz - QB.z)
+    const earliest = SNAP + SNAP_FLIGHT + WINDUP + 0.25
+    const throwT = Math.max(earliest, catchT - (0.5 + 0.035 * throwDist))
+    const dropEnd = Math.min(SNAP + 1.3, throwT - WINDUP)
+    const drop = dropEnd - SNAP > 0.9 ? 3 : 1.5 // quick throws get a short drop
+    const whistle = SNAP + pathLength(route) / v + 0.15
+    const finalX = los + target.x + route[route.length - 1][0]
+    const td = finalX >= 100
+    const end = whistle + (td ? CELEBRATE : POST) + FADE
+    plays.push({ play, index, los, start, catchT, throwT, whistle, end, drop, dropEnd, td })
+    start += end + PAN
+    los = Math.round(finalX)
+  })
+  return { plays, loop: start }
+}
+
+const DRIVE = buildDrive()
+
+// ---------------------------------------------------------------- movement
+
+type Frame = 'run' | 'block' | 'hold' | 'windup' | 'follow' | 'reach' | 'carry' | 'cheer' | 'cheerball' | 'stand'
 
 interface Move {
-  dx: number // yards along the field
-  dz: number // yards across the field
-  ux?: number // extra sprite pixels along the field (for linemen meeting exactly)
+  dx: number // yards along the field from the player's spot
+  dz: number
+  ux?: number // extra sprite px along the field (linemen meeting exactly)
+  lift?: number // sprite px off the turf (jumping)
   frame?: Frame
 }
 
-/** Where each player is relative to his starting spot at time t in the loop. */
-function move(s: Spot, t: number): Move {
+/** A receiver's spot on his route at time t. */
+function routePos(r: Receiver, t: number, S: Sched): [number, number] {
+  const route = S.play.routes[r]
+  return along(route, SPEED[r] * Math.max(0, Math.min(t, S.whistle) - SNAP))
+}
+
+function move(s: Spot, t: number, S: Sched): Move {
+  const live = t > SNAP && t < S.whistle
+  const celebrating = S.td && t >= S.whistle
+  const offense = OFFENSE.includes(s)
   if (t < SNAP) return { dx: 0, dz: 0 }
-  const live = t < WHISTLE ? 1 : 0
+
+  // Touchdown: offense jumps and cheers where it stands, defense stands there.
+  const jump = celebrating ? 7 * Math.abs(Math.sin((t - S.whistle) * 5.5 + s.z * 1.7 + s.x)) : 0
+  const cheer = (m: Move, scorer = false): Move =>
+    celebrating ? { ...m, frame: offense ? (scorer ? 'cheerball' : 'cheer') : 'stand', lift: offense ? jump : 0 } : m
+
   switch (s.role) {
     case 'ol': case 'dl': {
       // Both lines fire out and meet at the ball, then push and pull together.
       const side = s.role === 'ol' ? -1 : 1
       const e = prog(t, SNAP, SNAP + LOCK)
-      const drive = 1.6 * prog(t, SNAP + LOCK, WHISTLE)
-      const tussle = 0.9 * Math.sin(t * 7 + s.z * 2.3) * live * e
+      const drive = 1.6 * prog(t, SNAP + LOCK, S.whistle)
+      const tussle = 0.9 * Math.sin(t * 7 + s.z * 2.3) * (live ? 1 : 0) * e
       const help = s.role === 'ol' && s.z < -2 ? 0.6 * e : 0 // the uncovered guard helps inside
-      return { dx: -s.x * e, dz: help, ux: side * ENGAGE * e + drive + tussle, frame: t > SNAP + 0.08 ? 'block' : undefined }
+      return cheer({ dx: -s.x * e, dz: help, ux: side * ENGAGE * e + drive + tussle, frame: 'block' })
     }
-    case 'te': return { dx: 5 * prog(t, SNAP, WHISTLE), dz: 3 * prog(t, SNAP, WHISTLE), frame: live ? 'run' : undefined }
-    // Ball at his chest from the snap, then windup, release, and a step into the follow-through.
     case 'qb': {
+      // Ball at his chest from the snap, then windup, release, and a step into the follow-through.
       const frame: Frame | undefined =
         t < SNAP + SNAP_FLIGHT ? undefined
-        : t < THROW - WINDUP ? 'hold'
-        : t < THROW ? 'windup'
-        : t < THROW + FOLLOW ? 'follow'
+        : t < S.throwT - WINDUP ? 'hold'
+        : t < S.throwT ? 'windup'
+        : t < S.throwT + FOLLOW ? 'follow'
         : undefined
-      return { dx: -3 * prog(t, SNAP + 0.25, SNAP + 1.3) + 0.5 * prog(t, THROW - 0.1, THROW + 0.4), dz: 0, frame }
+      return cheer({ dx: -S.drop * prog(t, SNAP + 0.25, S.dropEnd) + 0.5 * prog(t, S.throwT - 0.1, S.throwT + 0.4), dz: 0, frame })
     }
-    // Runs his route, reaches up as the ball arrives, catches it, tucks it and keeps going.
-    case 'wrNear': {
-      const frame: Frame | undefined =
-        t < CATCH - REACH ? 'run'
-        : t < CATCH + 0.15 ? 'reach'
-        : t < WHISTLE ? 'carry'
+    case 'rb':
+      return cheer({ dx: 0.6 * prog(t, SNAP, SNAP + 0.8), dz: -1.1 * prog(t, SNAP, SNAP + 0.8), frame: t > SNAP + 0.5 ? 'block' : 'run' })
+    case 'wrFar': case 'wrSlot': case 'wrNear': case 'te': {
+      const [dx, dz] = routePos(s.role, t, S)
+      if (s.role !== S.play.target) return cheer({ dx, dz, frame: 'run' })
+      // The target reaches as the ball arrives, catches it, tucks it and runs.
+      const frame: Frame =
+        t < S.catchT - REACH ? 'run'
+        : t < S.catchT + 0.15 ? 'reach'
+        : t < S.whistle ? 'carry'
         : 'hold'
-      return { dx: 14 * lin(t, SNAP, WHISTLE), dz: 0, frame }
+      return cheer({ dx, dz, frame }, true)
     }
-    case 'rb': return { dx: 0.6 * prog(t, SNAP, SNAP + 0.8), dz: -1.1 * prog(t, SNAP, SNAP + 0.8), frame: t > SNAP + 0.5 ? 'block' : 'run' }
-    case 'wr': case 'wrFar': return { dx: 14 * lin(t, SNAP, WHISTLE), dz: 0, frame: live ? 'run' : undefined }
-    case 'cb': case 'cbFar': return { dx: 12 * lin(t, SNAP + 0.25, WHISTLE), dz: 0, frame: live && t > SNAP + 0.25 ? 'run' : undefined }
-    case 'lb': return { dx: 3 * prog(t, SNAP, SNAP + 2.2), dz: 0, frame: 'run' }
-    case 'saf': return { dx: 5 * prog(t, SNAP, WHISTLE), dz: -6.5 * prog(t, SNAP, WHISTLE), frame: live ? 'run' : undefined }
+    case 'cbFar': case 'cbSlot': case 'cbNear': {
+      // Man coverage: shadow the receiver a step behind, playing over the top.
+      const man = MAN[s.role]!
+      const ms = spotOf(man)
+      const [mx, mz] = routePos(man, t - 0.3, S)
+      const e = prog(t, SNAP, SNAP + 0.9)
+      const tx = ms.x + mx + 1.3
+      const tz = ms.z + mz - 0.7 // a step farther from the camera, so the receiver (and the catch) stays in view
+      return cheer({ dx: (tx - s.x) * e, dz: (tz - s.z) * e, frame: 'run' })
+    }
+    case 'saf': {
+      // Reads the QB and drives toward where the ball is going.
+      const ts = spotOf(S.play.target)
+      const [cx, cz] = along(S.play.routes[S.play.target], S.play.catchAt)
+      const f = prog(t, SNAP + 0.3, S.catchT + 0.6)
+      return cheer({ dx: (ts.x + cx + 3 - s.x) * f, dz: (ts.z + cz - s.z) * f, frame: 'run' })
+    }
+    case 'lb': {
+      const ts = spotOf(S.play.target)
+      const drift = (ts.z - s.z) * 0.25 * prog(t, SNAP + 0.6, S.catchT + 0.5)
+      return cheer({ dx: 3 * prog(t, SNAP, SNAP + 2.2), dz: drift, frame: 'run' })
+    }
   }
 }
 
-const RUN_CYCLE: Pose[] = ['run0', 'run1', 'run2', 'run3']
-const cycle = (name: CycleName): Pose[] => [0, 1, 2, 3].map((i) => `${name}${i}` as Pose)
+// ---------------------------------------------------------------- the ball
 
-/** Every sprite frame each role can show during the play (besides its starting pose). */
-const FRAMES: Partial<Record<Role, Pose[]>> = {
-  wr: RUN_CYCLE, wrFar: RUN_CYCLE, cb: RUN_CYCLE, cbFar: RUN_CYCLE, saf: RUN_CYCLE, te: RUN_CYCLE, lb: RUN_CYCLE,
-  ol: ['block'], dl: ['block'], rb: [...RUN_CYCLE, 'block'],
-  qb: ['hold', ...cycle('holdrun'), 'windup', 'follow'],
-  wrNear: [...RUN_CYCLE, ...cycle('reach'), ...cycle('carry'), 'hold'],
+/** Where a player's hands are: [x yards, z yards, ux sprite px, lift sprite px], relative to the line. */
+type BallSpot = [number, number, number, number]
+function hands(s: Spot, t: number, S: Sched, ux = 3, lift = 9): BallSpot {
+  const m = move(s, t, S)
+  return [s.x + m.dx, s.z + m.dz, (m.ux ?? 0) + ux, lift]
+}
+const mix = (a: BallSpot, b: BallSpot, f: number): BallSpot => a.map((v, i) => v + (b[i] - v) * f) as BallSpot
+
+/** The ball's path: under the center, snapped to the QB, carried on the drop, thrown, caught. */
+function ballAt(t: number, S: Sched): BallSpot {
+  const atCenter: BallSpot = [CENTER.x, CENTER.z, 6, 0.5]
+  const target = spotOf(S.play.target)
+  if (t < SNAP) return atCenter
+  if (t < SNAP + SNAP_FLIGHT) {
+    const f = (t - SNAP) / SNAP_FLIGHT
+    const p = mix(atCenter, hands(QB, t, S), f)
+    p[3] += 4 * Math.sin(Math.PI * f)
+    return p
+  }
+  if (t < S.throwT) return hands(QB, t, S)
+  if (t < S.catchT) {
+    const f = (t - S.throwT) / (S.catchT - S.throwT)
+    const p = mix(hands(QB, S.throwT, S, 6, 17), hands(target, S.catchT, S, 4, 18), f)
+    p[3] += (14 + 0.5 * Math.abs(p[0])) * Math.sin(Math.PI * f)
+    return p
+  }
+  return hands(target, t, S)
+}
+
+/** Ball visible as its own sprite only when nobody is holding it. */
+const ballLoose = (t: number, S: Sched) => t < SNAP + SNAP_FLIGHT || (t >= S.throwT && t < S.catchT)
+
+// ---------------------------------------------------------------- sprite frames
+
+const cycle = (name: CycleName): Pose[] => [0, 1, 2, 3].map((i) => `${name}${i}` as Pose)
+const RUN = cycle('run')
+const RECEIVER_FRAMES: Pose[] = [...RUN, ...cycle('reach'), ...cycle('carry'), 'hold', 'cheer', 'cheerball']
+
+/** Every sprite each role can show (besides its starting pose). */
+const FRAMES: Record<Role, Pose[]> = {
+  ol: ['block', 'cheer'], te: RECEIVER_FRAMES, qb: ['hold', ...cycle('holdrun'), 'windup', 'follow', 'cheer'],
+  rb: [...RUN, 'block', 'cheer'], wrFar: RECEIVER_FRAMES, wrSlot: RECEIVER_FRAMES, wrNear: RECEIVER_FRAMES,
+  dl: ['block', 'stand'], lb: [...RUN, 'stand'], cbFar: [...RUN, 'stand'], cbSlot: [...RUN, 'stand'], cbNear: [...RUN, 'stand'],
+  saf: RUN,
 }
 
 /** Yards covered per frame of the running cycle. */
 const STRIDE = 0.45
-/** Defenders who turn and run with their man instead of backpedaling. */
-const TURN_AND_RUN = new Set<Role>(['cb', 'cbFar', 'saf', 'lb'])
+/** These always face downfield (linemen stay locked up; the QB keeps his eyes downfield on the drop). */
+const FIXED_FACING = new Set<Role>(['ol', 'dl', 'qb'])
 
-const distance = (s: Spot, t: number) => {
-  const m = move(s, t)
-  return Math.hypot(m.dx, m.dz)
-}
-
-/** The exact sprite to show for a player at time t, and which way he faces. */
-function pose(s: Spot, t: number, defaultFlip: boolean): { pose: Pose | null; flip: boolean } {
-  const m = move(s, t)
-  const d = distance(s, t)
-  const moving = t > SNAP && (d - distance(s, t - 0.06)) / 0.06 > 0.6 // yards per second
-  const step = Math.floor(d / STRIDE) % 4
-  // Coverage defenders turn to face the way they're running once the play is on.
-  const flip = TURN_AND_RUN.has(s.role) && t > SNAP + 0.2 ? m.dx < 0 : defaultFlip
+/** The sprite to show for a player, and which way he faces. */
+function pose(s: Spot, t: number, S: Sched, step: number, defaultFlip: boolean): { pose: Pose | null; flip: boolean; moving: boolean } {
+  const m = move(s, t, S)
+  const p = move(s, t - 0.06, S)
+  const vx = (m.dx - p.dx) / 0.06
+  const speed = Math.hypot(m.dx - p.dx, m.dz - p.dz) / 0.06
+  const moving = t > SNAP && speed > 0.6 && !(S.td && t >= S.whistle)
+  // Face the way you're running once the play is on; otherwise face the other team.
+  const flip = !FIXED_FACING.has(s.role) && moving && Math.abs(vx) > 0.6 ? vx < 0 : defaultFlip
+  const c = step % 4
   switch (m.frame) {
-    case undefined: return { pose: null, flip }
-    case 'run': return { pose: moving ? (`run${step}` as Pose) : null, flip }
-    case 'carry': return { pose: moving ? (`carry${step}` as Pose) : 'hold', flip }
-    case 'reach': return { pose: `reach${step}` as Pose, flip }
-    case 'hold': return { pose: moving ? (`holdrun${step}` as Pose) : 'hold', flip }
-    default: return { pose: m.frame, flip }
+    case undefined: return { pose: null, flip, moving }
+    case 'run': return { pose: moving ? (`run${c}` as Pose) : null, flip, moving }
+    case 'carry': return { pose: moving ? (`carry${c}` as Pose) : 'hold', flip, moving }
+    case 'reach': return { pose: `reach${c}` as Pose, flip, moving }
+    case 'hold': return { pose: moving ? (`holdrun${c}` as Pose) : 'hold', flip, moving }
+    default: return { pose: m.frame, flip, moving: false }
   }
 }
 
-// Perspective of the turf (.field-perspective / .field-plane in index.css).
+// ---------------------------------------------------------------- projection
+
 const PERSPECTIVE = 520
 const TILT = (62 * Math.PI) / 180
 const COS = Math.cos(TILT)
 const SIN = Math.sin(TILT)
 
-interface Layout { W: number; top: number; yard: number; depthUnit: number; d0: number; px: number }
+interface Layout { W: number; H: number; top: number; yard: number; depthUnit: number; d0: number; px: number }
 
-const NEAREST_Z = Math.max(...[...OFFENSE, ...DEFENSE].map((s) => s.z))
+const NEAREST_Z = Math.max(...[...OFFENSE, ...DEFENSE].map((s) => s.z)) + 2
+
+/** Screen position and scale for a turf point x yards from the camera (ux = extra sprite px along the field). */
+function project(L: Layout, x: number, z: number, ux = 0) {
+  const d = L.d0 + z * L.depthUnit
+  const k = PERSPECTIVE / (PERSPECTIVE - d * SIN)
+  return { sx: L.W / 2 + (x * L.yard + ux * L.px) * k, sy: L.top + d * COS * k, k }
+}
 
 function layout(): Layout {
   const W = window.innerWidth
   const H = window.innerHeight
   const fieldH = 0.46 * H // .field-perspective height
   const L: Layout = {
-    W,
+    W, H,
     top: H - fieldH,
-    // A yard matches the turf's yard lines (every 10% of a 140%-wide plane) on
-    // wide screens; phones get a little extra room so the teams don't overlap.
+    // Phones get a little extra room per yard so the teams don't overlap.
     yard: Math.max(0.014 * W, 0.0125 * H),
     depthUnit: 0.023 * fieldH,
     d0: 0.39 * fieldH, // how far "down" the turf the formation stands
@@ -201,50 +391,73 @@ function layout(): Layout {
   return L
 }
 
-/** Screen position and scale for a point on the turf (ux = extra sprite pixels along the field). */
-function project(L: Layout, x: number, z: number, ux = 0) {
-  const d = L.d0 + z * L.depthUnit
-  const k = PERSPECTIVE / (PERSPECTIVE - d * SIN)
-  return { sx: L.W / 2 + (x * L.yard + ux * L.px) * k, sy: L.top + d * COS * k, k }
+// ---------------------------------------------------------------- camera
+
+/** Which play is on at global time T, and the local time within it. */
+function playAt(T: number): { S: Sched; t: number } {
+  const { plays } = DRIVE
+  for (let i = plays.length - 1; i >= 0; i--) if (T >= plays[i].start) return { S: plays[i], t: T - plays[i].start }
+  return { S: plays[0], t: T }
 }
+
+/** Camera center (field x). Sits a few yards ahead of the line and follows the ball downfield. */
+function cameraAt(T: number): number {
+  const { S, t } = playAt(T)
+  const base = (P: Sched) => P.los + 4
+  const follow = (P: Sched, lt: number) => {
+    const bx = P.los + ballAt(Math.min(lt, P.end), P)[0]
+    return base(P) + 0.75 * Math.max(0, bx - base(P) - 6)
+  }
+  if (t <= S.end) return follow(S, t)
+  // Between plays: pan to the next line of scrimmage (or back to the start of the drive).
+  const next = DRIVE.plays[S.index + 1] ?? DRIVE.plays[0]
+  return lerp(follow(S, S.end), base(next), prog(t, S.end, S.end + PAN))
+}
+
+// ---------------------------------------------------------------- the field
+
+const TURF = ['#124224', '#103b20'] // stadium turf stripes, pre-dimmed to match the backdrop
+const ENDZONE = '#6e1d23'
+const LINE = 'rgba(205, 205, 196, 0.42)'
+
+/** SVG for the visible part of the field, given the camera. */
+function fieldSvg(L: Layout, cam: number, S: Sched, markers: number): string {
+  // Visible depth: from the far edge (top of the turf) to just past the bottom of the screen.
+  const yNear = L.H - L.top + 30
+  const dNear = (PERSPECTIVE * yNear) / (PERSPECTIVE * COS + yNear * SIN)
+  const zFar = -L.d0 / L.depthUnit
+  const zNear = (dNear - L.d0) / L.depthUnit
+  const quad = (x0: number, x1: number, fill: string, opacity = 1) => {
+    const a = project(L, x0 - cam, zFar), b = project(L, x1 - cam, zFar)
+    const c = project(L, x1 - cam, zNear), d = project(L, x0 - cam, zNear)
+    return `<polygon points="${a.sx.toFixed(1)},${a.sy.toFixed(1)} ${b.sx.toFixed(1)},${b.sy.toFixed(1)} ${c.sx.toFixed(1)},${c.sy.toFixed(1)} ${d.sx.toFixed(1)},${d.sy.toFixed(1)}" fill="${fill}"${opacity < 1 ? ` opacity="${opacity.toFixed(2)}"` : ''}/>`
+  }
+  const span = (L.W / 2 / L.yard) * 1.6 + 10
+  const from = Math.floor((cam - span) / 5) * 5
+  const to = cam + span
+  let out = ''
+  for (let x = from; x < to; x += 5) {
+    const inEndzone = x >= 100 || x < 0
+    out += quad(x, x + 5, inEndzone ? ENDZONE : TURF[((x / 5) % 2 + 2) % 2])
+  }
+  for (let x = Math.max(0, from); x <= Math.min(100, to); x += 5) {
+    const goal = x === 0 || x === 100
+    out += quad(x - (goal ? 0.25 : 0.12), x + (goal ? 0.25 : 0.12), goal ? 'rgba(235, 232, 220, 0.75)' : LINE)
+  }
+  if (markers > 0) {
+    out += quad(S.los - 0.2, S.los + 0.2, '#3a8fe0', 0.85 * markers) // line of scrimmage
+    if (S.los + 10 < 100) out += quad(S.los + 9.8, S.los + 10.2, '#f2c230', 0.85 * markers) // line to gain
+  }
+  return out
+}
+
+// ---------------------------------------------------------------- component
 
 interface Actor { spot: Spot; team: TeamColors; flip: boolean }
 const ACTORS: Actor[] = [
   ...OFFENSE.map((spot) => ({ spot, team: GOLD, flip: false })),
   ...DEFENSE.map((spot) => ({ spot, team: CRIMSON, flip: true })),
 ]
-const QB = OFFENSE.find((s) => s.role === 'qb')!
-const CENTER = OFFENSE.find((s) => s.role === 'ol' && s.z === 0)!
-const TARGET = OFFENSE.find((s) => s.role === 'wrNear')!
-
-/** A point where a player's hands are: [x yards, z yards, ux sprite px, lift sprite px]. */
-type BallSpot = [number, number, number, number]
-function hands(s: Spot, t: number, ux = 3, lift = 9): BallSpot {
-  const m = move(s, t)
-  return [s.x + m.dx, s.z + m.dz, (m.ux ?? 0) + ux, lift]
-}
-const mix = (a: BallSpot, b: BallSpot, f: number): BallSpot => a.map((v, i) => v + (b[i] - v) * f) as BallSpot
-
-/** The ball's whole path: under the center, snapped to the QB, carried on the drop, thrown, caught. */
-function ballAt(t: number): BallSpot {
-  const atCenter: BallSpot = [CENTER.x, CENTER.z, 6, 0.5]
-  if (t < SNAP) return atCenter
-  if (t < SNAP + SNAP_FLIGHT) {
-    const f = (t - SNAP) / SNAP_FLIGHT
-    const p = mix(atCenter, hands(QB, t), f)
-    p[3] += 4 * Math.sin(Math.PI * f)
-    return p
-  }
-  if (t < THROW) return hands(QB, t)
-  if (t < CATCH) {
-    // From the release point above the QB's helmet to the receiver's raised hands.
-    const f = (t - THROW) / (CATCH - THROW)
-    const p = mix(hands(QB, THROW, 6, 17), hands(TARGET, CATCH, 4, 18), f)
-    p[3] += 22 * Math.sin(Math.PI * f)
-    return p
-  }
-  return hands(TARGET, t)
-}
 
 export function Teams() {
   const root = useRef<HTMLDivElement>(null)
@@ -252,74 +465,118 @@ export function Teams() {
   useEffect(() => {
     const el = root.current
     if (!el) return
+    const turf = el.querySelector<SVGGElement>('.turf-g')!
+    const cast = el.querySelector<HTMLElement>('.players')!
     const players = Array.from(el.querySelectorAll<HTMLElement>('.pl:not(.pl-ball)'))
     const ball = el.querySelector<HTMLElement>('.pl-ball')!
+    const svg = el.querySelector<SVGSVGElement>('.turf-svg')!
     const still = reducedMotion()
     const view = { L: layout() }
     const onResize = () => { view.L = layout() }
     window.addEventListener('resize', onResize)
 
+    // Per-player stride counters for the run cycle (reset every play).
+    const steps = players.map(() => ({ dist: 0, last: null as null | [number, number] }))
+    const state = { raf: 0, play: -1, cheeredAt: -1 }
     const t0 = performance.now()
-    const loop = { raf: 0 }
+
     const frame = (now: number) => {
       const L = view.L
-      // Dev only: set window.__teamsT = seconds to freeze the play at one moment (for screenshots).
+      // Dev only: set window.__teamsT = seconds to freeze the drive at one moment (for screenshots).
       const frozen = import.meta.env.DEV ? (window as { __teamsT?: number }).__teamsT : undefined
-      const t = frozen ?? (still ? 0 : ((now - t0) / 1000) % LOOP)
-      el.style.opacity = String(still ? 1 : Math.min(clamp01(t / 0.5), clamp01((LOOP - t) / 0.8)))
+      const T = frozen ?? (still ? 0 : ((now - t0) / 1000) % DRIVE.loop)
+      const { S, t } = playAt(T)
+      const cam = still ? S.los + 4 : cameraAt(T)
+      const shown = still ? 1 : Math.min(clamp01(t / FADE), clamp01((S.end - t) / FADE))
+
+      svg.setAttribute('viewBox', `0 0 ${L.W} ${L.H}`)
+      turf.innerHTML = fieldSvg(L, cam, S, shown)
+      cast.style.opacity = String(shown)
+
+      if (state.play !== S.index) {
+        state.play = S.index
+        steps.forEach((s) => { s.dist = 0; s.last = null })
+      }
+      // Touchdown: the crowd on the backdrop goes wild once per drive.
+      if (S.td && t >= S.whistle && state.cheeredAt !== Math.floor((now - t0) / 1000 / DRIVE.loop) && !frozen) {
+        state.cheeredAt = Math.floor((now - t0) / 1000 / DRIVE.loop)
+        fx.crowd('cheer', 3, CELEBRATE * 1000)
+      }
+
       players.forEach((p, i) => {
         const a = ACTORS[i]
-        const m = move(a.spot, t)
-        const { sx, sy, k } = project(L, a.spot.x + m.dx, a.spot.z + m.dz, m.ux)
-        p.style.transform = `translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px) scale(${(k * L.px).toFixed(3)}) translate(-50%, -100%)`
+        const m = move(a.spot, t, S)
+        const x = a.spot.x + m.dx
+        const z = a.spot.z + m.dz
+        const st = steps[i]
+        if (st.last) st.dist += Math.hypot(x - st.last[0], z - st.last[1])
+        st.last = [x, z]
+        const f = pose(a.spot, t, S, Math.floor(st.dist / STRIDE), a.flip)
+        const { sx, sy, k } = project(L, S.los + x - cam, z, m.ux)
+        const lift = (m.lift ?? 0) * L.px * k
+        p.style.transform = `translate(${sx.toFixed(1)}px, ${(sy - lift).toFixed(1)}px) scale(${(k * L.px).toFixed(3)}) translate(-50%, -100%)`
         // Defense draws over offense at the same depth, so engaged pairs layer consistently.
         p.style.zIndex = String(Math.round(sy) * 2 + (a.flip ? 1 : 0))
-        const f = pose(a.spot, t, a.flip)
         const key = f.pose ?? 'base'
         if (p.dataset.frame !== key) {
           p.querySelector<HTMLElement>(`img[data-f="${p.dataset.frame ?? 'base'}"]`)?.style.setProperty('opacity', '0')
           p.querySelector<HTMLElement>(`img[data-f="${key}"]`)?.style.setProperty('opacity', '1')
           p.dataset.frame = key
-          p.classList.toggle('moving', key !== 'base' && !['block', 'hold', 'windup', 'follow'].includes(key))
         }
+        p.classList.toggle('moving', f.moving)
         p.classList.toggle('flip', f.flip)
       })
-      const [bx, bz, bux, lift] = ballAt(t)
-      const b = project(L, bx, bz, bux)
-      const flying = t > THROW && t < CATCH
-      // While the QB or the receiver holds it, the ball is part of their sprite.
-      ball.style.visibility = (t >= SNAP + SNAP_FLIGHT && t < THROW) || t >= CATCH ? 'hidden' : 'visible'
-      const spin = flying ? -25 + 50 * ((t - THROW) / (CATCH - THROW)) : 0
-      ball.style.transform = `translate(${b.sx.toFixed(1)}px, ${(b.sy - lift * L.px * b.k).toFixed(1)}px) scale(${(b.k * L.px).toFixed(3)}) rotate(${spin.toFixed(0)}deg) translate(-50%, -50%)`
+
+      const [bx, bz, bux, blift] = ballAt(t, S)
+      const b = project(L, S.los + bx - cam, bz, bux)
+      const flying = t > S.throwT && t < S.catchT
+      const spin = flying ? -25 + 50 * ((t - S.throwT) / (S.catchT - S.throwT)) : 0
+      ball.style.visibility = ballLoose(t, S) ? 'visible' : 'hidden'
+      ball.style.transform = `translate(${b.sx.toFixed(1)}px, ${(b.sy - blift * L.px * b.k).toFixed(1)}px) scale(${(b.k * L.px).toFixed(3)}) rotate(${spin.toFixed(0)}deg) translate(-50%, -50%)`
       ball.style.zIndex = String(flying || (t > SNAP && t < SNAP + SNAP_FLIGHT) ? 99999 : Math.round(b.sy) * 2 + 2)
-      if (!still) loop.raf = requestAnimationFrame(frame)
+
+      if (!still) state.raf = requestAnimationFrame(frame)
     }
-    loop.raf = requestAnimationFrame(frame)
-    return () => { cancelAnimationFrame(loop.raf); window.removeEventListener('resize', onResize) }
+    state.raf = requestAnimationFrame(frame)
+    return () => { cancelAnimationFrame(state.raf); window.removeEventListener('resize', onResize) }
   }, [])
 
   return (
     <div className="teams" ref={root} aria-hidden="true">
-      {ACTORS.map((a, i) => {
-        const base = spriteUrl(a.spot.pose, a.team, a.spot.skin)
-        return (
-          <div key={i} className={`pl ${a.flip ? 'flip' : ''} ${i % 2 ? 'bob-b' : 'bob-a'}`} data-frame="base" style={{ width: base.w, height: base.h }}>
-            <img src={base.url} alt="" data-f="base" draggable={false} />
-            {(FRAMES[a.spot.role] ?? []).map((f) => {
-              const s = spriteUrl(f, a.team, a.spot.skin)
-              // Frames can differ in width; keep each one centered on the player's feet.
-              return <img key={f} src={s.url} alt="" data-f={f} draggable={false}
-                style={{ width: s.w, height: s.h, left: '50%', top: 'auto', bottom: 0, marginLeft: -s.w / 2 }} />
-            })}
-          </div>
-        )
-      })}
-      <div className="pl pl-ball" style={{ width: 7, height: 4 }}>
-        <svg viewBox="0 0 7 4" width="7" height="4" shapeRendering="crispEdges">
-          <rect x="1" y="0" width="5" height="4" fill="#8a4a24" />
-          <rect x="0" y="1" width="7" height="2" fill="#8a4a24" />
-          <rect x="2" y="1" width="3" height="1" fill="#f2efe4" />
-        </svg>
+      <svg className="turf-svg" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="turf-fog" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#050a07" stopOpacity="1" />
+            <stop offset="0.12" stopColor="#050a07" stopOpacity="0" />
+            <stop offset="0.7" stopColor="#050a07" stopOpacity="0" />
+            <stop offset="1" stopColor="#050a07" stopOpacity="0.7" />
+          </linearGradient>
+        </defs>
+        <g className="turf-g" />
+        <rect className="turf-fog" x="0" y="54%" width="100%" height="46%" fill="url(#turf-fog)" />
+      </svg>
+      <div className="players">
+        {ACTORS.map((a, i) => {
+          const base = spriteUrl(a.spot.pose, a.team, a.spot.skin)
+          return (
+            <div key={i} className={`pl ${a.flip ? 'flip' : ''} ${i % 2 ? 'bob-b' : 'bob-a'}`} data-frame="base" style={{ width: base.w, height: base.h }}>
+              <img src={base.url} alt="" data-f="base" draggable={false} />
+              {FRAMES[a.spot.role].map((f) => {
+                const s = spriteUrl(f, a.team, a.spot.skin)
+                // Frames can differ in size; keep each one centered on the player's feet.
+                return <img key={f} src={s.url} alt="" data-f={f} draggable={false}
+                  style={{ width: s.w, height: s.h, left: '50%', top: 'auto', bottom: 0, marginLeft: -s.w / 2 }} />
+              })}
+            </div>
+          )
+        })}
+        <div className="pl pl-ball" style={{ width: 7, height: 4 }}>
+          <svg viewBox="0 0 7 4" width="7" height="4" shapeRendering="crispEdges">
+            <rect x="1" y="0" width="5" height="4" fill="#8a4a24" />
+            <rect x="0" y="1" width="7" height="2" fill="#8a4a24" />
+            <rect x="2" y="1" width="3" height="1" fill="#f2efe4" />
+          </svg>
+        </div>
       </div>
     </div>
   )

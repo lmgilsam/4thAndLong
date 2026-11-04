@@ -83,7 +83,9 @@ h1, h2, h3, p { margin: 0; }
 
 /* ---------- Home field: two teams at the line (Teams.tsx) ---------- */
 /* Players are positioned by JS (2D perspective) so pixel art stays crisp. */
-.teams { position: absolute; inset: 0; pointer-events: none; opacity: 0; }
+.teams { position: absolute; inset: 0; pointer-events: none; }
+.teams .turf-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.teams .players { position: absolute; inset: 0; opacity: 0; }
 .teams .pl { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .teams .pl img, .teams .pl svg { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; display: block; }
 .teams .pl img { filter: brightness(0.88) drop-shadow(0 1px 0 rgba(0, 0, 0, 0.4)); }

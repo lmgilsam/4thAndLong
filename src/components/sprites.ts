@@ -7,7 +7,7 @@
 //       J jersey, j jersey shade, N jersey number, P pants, p pants shade,
 //       K socks, B cleats, F football, f football shade, L laces, '.' empty
 
-export type BasePose = 'stand' | 'ready' | 'stance' | 'block' | 'hold' | 'windup' | 'follow'
+export type BasePose = 'stand' | 'ready' | 'stance' | 'block' | 'hold' | 'windup' | 'follow' | 'cheer' | 'cheerball'
 /** Running poses come in a 4-frame cycle: run0..run3, carry0..3, reach0..3, holdrun0..3. */
 export type CycleName = 'run' | 'carry' | 'reach' | 'holdrun'
 export type Pose = BasePose | `${CycleName}${0 | 1 | 2 | 3}`
@@ -96,6 +96,51 @@ const BASE: Record<BasePose, string[]> = {
     '.KK.......KK..',
     '.KK.......KK..',
     'BBB.......BBB.',
+  ],
+  // Touchdown celebration: both arms straight up
+  cheer: [
+    '.S........S.',
+    '.S..HHHH..S.',
+    '.S.HHHHHH.S.',
+    '.SHhHHHHHHS.',
+    '.SHhHHHSSMS.',
+    '.JHhHHHSSMJ.',
+    '.JJHHHSSsJJ.',
+    '.JJJJJJJJJJ.',
+    '.JjJJJJJJJJ.',
+    '..jJNNNJJJ..',
+    '..jJNJNJJJ..',
+    '..jJNNNJJJ..',
+    '...JJJJJJ...',
+    '...PPPPPP...',
+    '...PPppPP...',
+    '...PP..PP...',
+    '...KK..KK...',
+    '...KK..KK...',
+    '..BBB..BBB..',
+  ],
+  // The scorer: arms up, ball held high in one hand
+  cheerball: [
+    '.........FF.',
+    '.S.......FLF',
+    '.S..HHHH..S.',
+    '.S.HHHHHH.S.',
+    '.SHhHHHHHHS.',
+    '.SHhHHHSSMS.',
+    '.JHhHHHSSMJ.',
+    '.JJHHHSSsJJ.',
+    '.JJJJJJJJJJ.',
+    '.JjJJJJJJJJ.',
+    '..jJNNNJJJ..',
+    '..jJNJNJJJ..',
+    '..jJNNNJJJ..',
+    '...JJJJJJ...',
+    '...PPPPPP...',
+    '...PPppPP...',
+    '...PP..PP...',
+    '...KK..KK...',
+    '...KK..KK...',
+    '..BBB..BBB..',
   ],
   // QB with the ball tucked against his chest in both hands
   hold: [
