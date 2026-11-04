@@ -7,8 +7,9 @@ import { CRIMSON, GOLD, spriteUrl, type BasePose, type CycleName, type Pose, typ
 // blocking and QB motion (snap, drop, windup, throw, follow-through) but the
 // receivers run different routes and the ball goes to a different man. The
 // ball is spotted where each play ends and the camera pans to the new line of
-// scrimmage. Play 4 is a touchdown: everyone on offense jumps and cheers, then
-// the drive starts over.
+// scrimmage. Every completion ends with the covering defender diving in and
+// tackling the ball carrier. Play 4 is a touchdown: everyone on offense jumps
+// and cheers, then the drive starts over.
 //
 // The field (stripes, yard lines, end zone, line of scrimmage, line to gain) is
 // drawn here in SVG so it can scroll with the camera. 3D CSS would blur the
@@ -128,8 +129,12 @@ function pathLength(p: Path): number {
   return len
 }
 
-/** Point `dist` yards along a route (starting at the receiver's spot). */
-function along(p: Path, dist: number): [number, number] {
+/**
+ * Point `dist` yards along a route (starting at the receiver's spot). With
+ * `extend`, a receiver who reaches the end keeps running in the route's last
+ * direction (bending downfield) until the whistle instead of stopping.
+ */
+function along(p: Path, dist: number, extend = false): [number, number] {
   let prev: [number, number] = [0, 0]
   let left = Math.max(0, dist)
   for (const pt of p) {
@@ -141,7 +146,13 @@ function along(p: Path, dist: number): [number, number] {
     left -= seg
     prev = pt
   }
-  return prev
+  if (!extend || left <= 0) return prev
+  const before = p.length > 1 ? p[p.length - 2] : [0, 0]
+  let ex = prev[0] - before[0]
+  let ez = (prev[1] - before[1]) * 0.35
+  if (ex < 0.5) ex = Math.max(ex, 0) + 1 // comebacks and flats turn upfield
+  const n = Math.hypot(ex, ez) || 1
+  return [prev[0] + (ex / n) * left * 0.85, prev[1] + (ez / n) * left * 0.85]
 }
 
 interface Sched {
@@ -151,6 +162,8 @@ interface Sched {
   start: number // global seconds when this play fades in
   catchT: number // local seconds (from start)
   throwT: number
+  tackleT: number // local: the carrier goes down (or crosses the goal line on a touchdown)
+  tackler: Role // who makes the tackle
   whistle: number
   end: number // local: players fully faded out
   drop: number // yards the QB drops
@@ -174,11 +187,14 @@ function buildDrive(): { plays: Sched[]; loop: number } {
     const throwT = Math.max(earliest, catchT - (0.5 + 0.035 * throwDist))
     const dropEnd = Math.min(SNAP + 1.3, throwT - WINDUP)
     const drop = dropEnd - SNAP > 0.9 ? 3 : 1.5 // quick throws get a short drop
-    const whistle = SNAP + pathLength(route) / v + 0.15
+    const tackleT = SNAP + pathLength(route) / v
     const finalX = los + target.x + route[route.length - 1][0]
     const td = finalX >= 100
+    const whistle = tackleT + (td ? 0.15 : 0.55)
     const end = whistle + (td ? CELEBRATE : POST) + FADE
-    plays.push({ play, index, los, start, catchT, throwT, whistle, end, drop, dropEnd, td })
+    // The corner on the target makes the tackle; the safety gets the tight end.
+    const tackler = (Object.keys(MAN) as Role[]).find((r) => MAN[r] === play.target) ?? 'saf'
+    plays.push({ play, index, los, start, catchT, throwT, tackleT, tackler, whistle, end, drop, dropEnd, td })
     start += end + PAN
     los = Math.round(finalX)
   })
@@ -189,7 +205,7 @@ const DRIVE = buildDrive()
 
 // ---------------------------------------------------------------- movement
 
-type Frame = 'run' | 'block' | 'hold' | 'windup' | 'follow' | 'reach' | 'carry' | 'cheer' | 'cheerball' | 'stand'
+type Frame = 'run' | 'block' | 'hold' | 'windup' | 'follow' | 'reach' | 'carry' | 'cheer' | 'cheerball' | 'stand' | 'dive' | 'down' | 'downball'
 
 interface Move {
   dx: number // yards along the field from the player's spot
@@ -199,10 +215,60 @@ interface Move {
   frame?: Frame
 }
 
-/** A receiver's spot on his route at time t. */
+/** A receiver's spot on his route at time t. The target stops where he's tackled; everyone else keeps running until the whistle. */
 function routePos(r: Receiver, t: number, S: Sched): [number, number] {
-  const route = S.play.routes[r]
-  return along(route, SPEED[r] * Math.max(0, Math.min(t, S.whistle) - SNAP))
+  const isTarget = r === S.play.target
+  const stop = isTarget ? S.tackleT : S.whistle
+  return along(S.play.routes[r], SPEED[r] * Math.max(0, Math.min(t, stop) - SNAP), !isTarget)
+}
+
+const DIVE = 0.3 // seconds the tackler is in the air
+const CLOSE = 0.9 // seconds the tackler takes to close on the carrier
+
+/**
+ * The tackle: the defender breaks off his coverage, closes on the ball carrier,
+ * dives and takes him down, landing just past him. Returns null when this
+ * player isn't making the tackle right now.
+ */
+function tackle(s: Spot, t: number, S: Sched, normal: (t: number) => Move): Move | null {
+  if (S.td || s.role !== S.tackler || t < S.tackleT - CLOSE) return null
+  const target = spotOf(S.play.target)
+  const [cx, cz] = routePos(S.play.target, S.tackleT, S)
+  const carrier = { x: target.x + cx, z: target.z + cz }
+  const from = normal(S.tackleT - CLOSE)
+  const fx = s.x + from.dx
+  const fz = s.z + from.dz
+  // Land just past the carrier on the side he came from, a half step farther from the
+  // camera, so the pile shows both players: carrier in front, tackler draped behind him.
+  const side = fx >= carrier.x ? 1 : -1
+  const land = { x: carrier.x + side * 0.9, z: carrier.z - 0.35 }
+  const f = prog(t, S.tackleT - CLOSE, S.tackleT)
+  const x = lerp(fx, land.x, f)
+  const z = lerp(fz, land.z, f)
+  const inAir = t >= S.tackleT - DIVE && t < S.tackleT + 0.08
+  const lift = inAir ? 9 * Math.sin(Math.PI * clamp01((t - (S.tackleT - DIVE)) / (DIVE + 0.08))) : 0
+  const frame: Frame = t < S.tackleT - DIVE ? 'run' : inAir ? 'dive' : 'down'
+  return { dx: x - s.x, dz: z - s.z, lift, frame }
+}
+
+/** Where a defensive back would be if he weren't making the tackle. */
+function coverage(s: Spot, t: number, S: Sched): Move {
+  if (t < SNAP) return { dx: 0, dz: 0 }
+  if (s.role === 'saf') {
+    // Reads the QB and drives toward where the ball is going.
+    const ts = spotOf(S.play.target)
+    const [cx, cz] = along(S.play.routes[S.play.target], S.play.catchAt)
+    const f = prog(t, SNAP + 0.3, S.catchT + 0.6)
+    return { dx: (ts.x + cx + 3 - s.x) * f, dz: (ts.z + cz - s.z) * f }
+  }
+  // Man coverage: shadow the receiver a step behind, playing over the top.
+  const man = MAN[s.role]!
+  const ms = spotOf(man)
+  const [mx, mz] = routePos(man, t - 0.3, S)
+  const e = prog(t, SNAP, SNAP + 0.9)
+  const tx = ms.x + mx + 1.3
+  const tz = ms.z + mz - 0.7 // a step farther from the camera, so the receiver (and the catch) stays in view
+  return { dx: (tx - s.x) * e, dz: (tz - s.z) * e }
 }
 
 function move(s: Spot, t: number, S: Sched): Move {
@@ -240,36 +306,24 @@ function move(s: Spot, t: number, S: Sched): Move {
       return cheer({ dx: 0.6 * prog(t, SNAP, SNAP + 0.8), dz: -1.1 * prog(t, SNAP, SNAP + 0.8), frame: t > SNAP + 0.5 ? 'block' : 'run' })
     case 'wrFar': case 'wrSlot': case 'wrNear': case 'te': {
       const [dx, dz] = routePos(s.role, t, S)
-      if (s.role !== S.play.target) return cheer({ dx, dz, frame: 'run' })
-      // The target reaches as the ball arrives, catches it, tucks it and runs.
+      if (s.role !== S.play.target) return cheer({ dx, dz, frame: t < S.whistle ? 'run' : 'stand' })
+      // The target reaches as the ball arrives, catches it, tucks it and runs until he's brought down.
       const frame: Frame =
         t < S.catchT - REACH ? 'run'
         : t < S.catchT + 0.15 ? 'reach'
-        : t < S.whistle ? 'carry'
-        : 'hold'
+        : t < S.tackleT ? 'carry'
+        : S.td ? 'hold'
+        : 'downball'
       return cheer({ dx, dz, frame }, true)
     }
-    case 'cbFar': case 'cbSlot': case 'cbNear': {
-      // Man coverage: shadow the receiver a step behind, playing over the top.
-      const man = MAN[s.role]!
-      const ms = spotOf(man)
-      const [mx, mz] = routePos(man, t - 0.3, S)
-      const e = prog(t, SNAP, SNAP + 0.9)
-      const tx = ms.x + mx + 1.3
-      const tz = ms.z + mz - 0.7 // a step farther from the camera, so the receiver (and the catch) stays in view
-      return cheer({ dx: (tx - s.x) * e, dz: (tz - s.z) * e, frame: 'run' })
-    }
-    case 'saf': {
-      // Reads the QB and drives toward where the ball is going.
-      const ts = spotOf(S.play.target)
-      const [cx, cz] = along(S.play.routes[S.play.target], S.play.catchAt)
-      const f = prog(t, SNAP + 0.3, S.catchT + 0.6)
-      return cheer({ dx: (ts.x + cx + 3 - s.x) * f, dz: (ts.z + cz - s.z) * f, frame: 'run' })
+    case 'cbFar': case 'cbSlot': case 'cbNear': case 'saf': {
+      const normal = (tt: number) => coverage(s, tt, S)
+      return tackle(s, t, S, normal) ?? cheer({ ...normal(t), frame: t < S.whistle ? 'run' : 'stand' })
     }
     case 'lb': {
       const ts = spotOf(S.play.target)
       const drift = (ts.z - s.z) * 0.25 * prog(t, SNAP + 0.6, S.catchT + 0.5)
-      return cheer({ dx: 3 * prog(t, SNAP, SNAP + 2.2), dz: drift, frame: 'run' })
+      return cheer({ dx: 3 * prog(t, SNAP, SNAP + 2.2), dz: drift, frame: t < S.whistle ? 'run' : 'stand' })
     }
   }
 }
@@ -312,14 +366,14 @@ const ballLoose = (t: number, S: Sched) => t < SNAP + SNAP_FLIGHT || (t >= S.thr
 
 const cycle = (name: CycleName): Pose[] => [0, 1, 2, 3].map((i) => `${name}${i}` as Pose)
 const RUN = cycle('run')
-const RECEIVER_FRAMES: Pose[] = [...RUN, ...cycle('reach'), ...cycle('carry'), 'hold', 'cheer', 'cheerball']
+const RECEIVER_FRAMES: Pose[] = [...RUN, ...cycle('reach'), ...cycle('carry'), 'hold', 'stand', 'downball', 'cheer', 'cheerball']
+const DB_FRAMES: Pose[] = [...RUN, 'stand', 'dive', 'down']
 
 /** Every sprite each role can show (besides its starting pose). */
 const FRAMES: Record<Role, Pose[]> = {
   ol: ['block', 'cheer'], te: RECEIVER_FRAMES, qb: ['hold', ...cycle('holdrun'), 'windup', 'follow', 'cheer'],
   rb: [...RUN, 'block', 'cheer'], wrFar: RECEIVER_FRAMES, wrSlot: RECEIVER_FRAMES, wrNear: RECEIVER_FRAMES,
-  dl: ['block', 'stand'], lb: [...RUN, 'stand'], cbFar: [...RUN, 'stand'], cbSlot: [...RUN, 'stand'], cbNear: [...RUN, 'stand'],
-  saf: RUN,
+  dl: ['block', 'stand'], lb: [...RUN, 'stand'], cbFar: DB_FRAMES, cbSlot: DB_FRAMES, cbNear: DB_FRAMES, saf: DB_FRAMES,
 }
 
 /** Yards covered per frame of the running cycle. */
@@ -335,11 +389,17 @@ function pose(s: Spot, t: number, S: Sched, step: number, defaultFlip: boolean):
   const speed = Math.hypot(m.dx - p.dx, m.dz - p.dz) / 0.06
   const moving = t > SNAP && speed > 0.6 && !(S.td && t >= S.whistle)
   // Face the way you're running once the play is on; otherwise face the other team.
-  const flip = !FIXED_FACING.has(s.role) && moving && Math.abs(vx) > 0.6 ? vx < 0 : defaultFlip
+  let flip = !FIXED_FACING.has(s.role) && moving && Math.abs(vx) > 0.6 ? vx < 0 : defaultFlip
+  // The tackler faces the ball carrier for the dive and stays that way on the turf.
+  if (s.role === S.tackler && !S.td && t >= S.tackleT - CLOSE) {
+    const ts = spotOf(S.play.target)
+    flip = s.x + coverage(s, S.tackleT - CLOSE, S).dx > ts.x + routePos(S.play.target, S.tackleT, S)[0]
+  }
   const c = step % 4
   switch (m.frame) {
     case undefined: return { pose: null, flip, moving }
-    case 'run': return { pose: moving ? (`run${c}` as Pose) : null, flip, moving }
+    // Not moving: back to the starting pose, except nobody drops back into a three-point stance mid-play.
+    case 'run': return { pose: moving ? (`run${c}` as Pose) : s.pose === 'stance' ? 'stand' : null, flip, moving }
     case 'carry': return { pose: moving ? (`carry${c}` as Pose) : 'hold', flip, moving }
     case 'reach': return { pose: `reach${c}` as Pose, flip, moving }
     case 'hold': return { pose: moving ? (`holdrun${c}` as Pose) : 'hold', flip, moving }
