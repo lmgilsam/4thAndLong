@@ -7,7 +7,7 @@
 //       J jersey, j jersey shade, N jersey number, P pants, p pants shade,
 //       K socks, B cleats, F football, f football shade, L laces, '.' empty
 
-export type BasePose = 'stand' | 'ready' | 'stance' | 'block' | 'hold' | 'windup' | 'follow' | 'cheer' | 'cheerball' | 'dive' | 'down' | 'downball'
+export type BasePose = 'stand' | 'ready' | 'stance' | 'block' | 'hold' | 'windup' | 'follow' | 'cheer' | 'cheerball' | 'launch' | 'dive' | 'fall' | 'down' | 'downball'
 /** Running poses come in a 4-frame cycle: run0..run3, carry0..3, reach0..3, holdrun0..3. */
 export type CycleName = 'run' | 'carry' | 'reach' | 'holdrun'
 export type Pose = BasePose | `${CycleName}${0 | 1 | 2 | 3}`
@@ -142,30 +142,65 @@ const BASE: Record<BasePose, string[]> = {
     '...KK..KK...',
     '..BBB..BBB..',
   ],
-  // Tackler in mid-air, laid out with arms reaching for the ball carrier
+  // Tackler launching: pushing off, body tipping forward, arms reaching
+  launch: [
+    '..........HHHH..',
+    '.........HHHHHH.',
+    '........HhHHSSMS',
+    '.......JJhHHSSMS',
+    '.....JJJJJHHSs.S',
+    '....JJjJNJJ..SS.',
+    '...JJJJNNJ......',
+    '..PPJJJJJ.......',
+    '.PPPPPP.........',
+    '.PP..PPP........',
+    'KK.....KK.......',
+    'B.......BB......',
+  ],
+  // Tackler fully laid out in the air, arms out for the ball carrier
   dive: [
-    '............HHHH....',
-    '...........HHHHHH...',
-    'BKKPPPJJJJJHhHHSSMSS',
-    'BKKPPpJJjJJHhHHSSM.S',
-    '...PP.JJJJJJHHSSs...',
-    '.......JJJJ.........',
+    '..............HHHH....',
+    '.............HHHHHH...',
+    'BB..KKPPJJJJJHhHHHSSMS',
+    'BKKKKPPPJJJJJJHhHHSSMS',
+    '...KKPPpJJjJNJJHHSSsSS',
+    '.......PPJJJJJJJ......',
+    '.........SS...........',
   ],
-  // Down on the turf, face first
+  // Ball carrier getting hit: knocked off his feet, ball still tucked
+  fall: [
+    '...........HHHH.',
+    '..........HHHHHH',
+    '.........HhHHSSM',
+    '........JJhHHSSM',
+    '......JJJJJHHSs.',
+    '.....JJFFJJJ....',
+    '....JJFLFJJ.....',
+    '...PPJffJJ......',
+    '..PPPPPP........',
+    '.PPP..PPP.......',
+    'KK......KK......',
+    'B........BB.....',
+  ],
+  // Down on the turf, face first, one leg kicked up (the tackler, lying on top)
   down: [
-    '..............HHHH..',
-    '.............HHHHHH.',
-    'BKKPPPJJJJJJHHhHSSM.',
-    'BKKPPpJJjJJJHHhHSSM.',
-    '.......SS.......SS..',
+    '................HHHH..',
+    '.KK............HHHHHH.',
+    'BKKPPPPJJJJJJJHHhHHSSM',
+    'BKPPPpPJJjJJJJJHhHHSSM',
+    '...PPPPJJJJNJJJJHHSSs.',
+    '..KK....JJJJJJ..SSSS..',
+    '.BB......SS...........',
   ],
-  // Ball carrier down on the turf, still holding the ball
+  // Ball carrier down on the turf, ball tucked under him
   downball: [
-    '..............HHHH..',
-    '.............HHHHHH.',
-    'BKKPPPJJJJJJHHhHSSMF',
-    'BKKPPpJJjJJJHHhHSSFL',
-    '.......SS.......SSFF',
+    '................HHHH..',
+    '.KK............HHHHHH.',
+    'BKKPPPPJJJJJJJHHhHHSSM',
+    'BKPPPpPJJjJJJJJHhHHSSM',
+    '...PPPPJJJJNJJJFFHSSs.',
+    '..KK....JJJJJJFLFSS...',
+    '.BB......SS....FF.....',
   ],
   // QB with the ball tucked against his chest in both hands
   hold: [

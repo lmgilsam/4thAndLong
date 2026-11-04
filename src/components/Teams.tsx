@@ -121,6 +121,7 @@ const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
 const ease = (v: number) => 1 - Math.pow(1 - clamp01(v), 2)
 const prog = (t: number, a: number, b: number) => ease((t - a) / (b - a))
 const lerp = (a: number, b: number, f: number) => a + (b - a) * f
+const lin = (t: number, a: number, b: number) => clamp01((t - a) / (b - a))
 
 function pathLength(p: Path): number {
   let len = 0
@@ -188,8 +189,9 @@ function buildDrive(): { plays: Sched[]; loop: number } {
     const dropEnd = Math.min(SNAP + 1.3, throwT - WINDUP)
     const drop = dropEnd - SNAP > 0.9 ? 3 : 1.5 // quick throws get a short drop
     const tackleT = SNAP + pathLength(route) / v
-    const finalX = los + target.x + route[route.length - 1][0]
-    const td = finalX >= 100
+    const routeEnd = los + target.x + route[route.length - 1][0]
+    const td = routeEnd >= 100
+    const finalX = td ? routeEnd : routeEnd - DRIVE_BACK // the hit drives him back a little
     const whistle = tackleT + (td ? 0.15 : 0.55)
     const end = whistle + (td ? CELEBRATE : POST) + FADE
     // The corner on the target makes the tackle; the safety gets the tight end.
@@ -201,17 +203,17 @@ function buildDrive(): { plays: Sched[]; loop: number } {
   return { plays, loop: start }
 }
 
-const DRIVE = buildDrive()
 
 // ---------------------------------------------------------------- movement
 
-type Frame = 'run' | 'block' | 'hold' | 'windup' | 'follow' | 'reach' | 'carry' | 'cheer' | 'cheerball' | 'stand' | 'dive' | 'down' | 'downball'
+type Frame = 'run' | 'block' | 'hold' | 'windup' | 'follow' | 'reach' | 'carry' | 'cheer' | 'cheerball' | 'stand' | 'launch' | 'dive' | 'fall' | 'down' | 'downball'
 
 interface Move {
   dx: number // yards along the field from the player's spot
   dz: number
   ux?: number // extra sprite px along the field (linemen meeting exactly)
-  lift?: number // sprite px off the turf (jumping)
+  lift?: number // sprite px off the turf (jumping, diving, lying on top of someone)
+  onTop?: boolean // draw above whoever is at the same spot (the tackler on the pile)
   frame?: Frame
 }
 
@@ -222,33 +224,54 @@ function routePos(r: Receiver, t: number, S: Sched): [number, number] {
   return along(S.play.routes[r], SPEED[r] * Math.max(0, Math.min(t, stop) - SNAP), !isTarget)
 }
 
-const DIVE = 0.3 // seconds the tackler is in the air
+// The tackle, as one motion (times relative to contact at S.tackleT):
+//   close in running  ->  LAUNCH: push off  ->  DIVE: laid out in the air, hits the
+//   carrier and drives him back  ->  both on the turf, tackler on top.
 const CLOSE = 0.9 // seconds the tackler takes to close on the carrier
+const LAUNCH = 0.42 // push-off starts this long before contact
+const AIR = 0.28 // fully laid out this long before contact
+const SETTLE = 0.3 // seconds from contact until both are down
+const DRIVE_BACK = 0.7 // yards the hit drives the carrier back
+
+/** Where the ball carrier is at time t, including being driven back by the hit. */
+function carrierPos(t: number, S: Sched): { x: number; z: number } {
+  const target = spotOf(S.play.target)
+  const [cx, cz] = routePos(S.play.target, t, S)
+  const back = S.td ? 0 : DRIVE_BACK * prog(t, S.tackleT, S.tackleT + SETTLE)
+  return { x: target.x + cx - back, z: target.z + cz }
+}
 
 /**
- * The tackle: the defender breaks off his coverage, closes on the ball carrier,
- * dives and takes him down, landing just past him. Returns null when this
- * player isn't making the tackle right now.
+ * The tackler breaks off his coverage, closes on the ball carrier, launches,
+ * flies in laid out, hits him, and they go down together with the tackler on
+ * top. Returns null when this player isn't making the tackle right now.
  */
 function tackle(s: Spot, t: number, S: Sched, normal: (t: number) => Move): Move | null {
   if (S.td || s.role !== S.tackler || t < S.tackleT - CLOSE) return null
-  const target = spotOf(S.play.target)
-  const [cx, cz] = routePos(S.play.target, S.tackleT, S)
-  const carrier = { x: target.x + cx, z: target.z + cz }
   const from = normal(S.tackleT - CLOSE)
-  const fx = s.x + from.dx
-  const fz = s.z + from.dz
-  // Land just past the carrier on the side he came from, a half step farther from the
-  // camera, so the pile shows both players: carrier in front, tackler draped behind him.
-  const side = fx >= carrier.x ? 1 : -1
-  const land = { x: carrier.x + side * 0.9, z: carrier.z - 0.35 }
-  const f = prog(t, S.tackleT - CLOSE, S.tackleT)
-  const x = lerp(fx, land.x, f)
-  const z = lerp(fz, land.z, f)
-  const inAir = t >= S.tackleT - DIVE && t < S.tackleT + 0.08
-  const lift = inAir ? 9 * Math.sin(Math.PI * clamp01((t - (S.tackleT - DIVE)) / (DIVE + 0.08))) : 0
-  const frame: Frame = t < S.tackleT - DIVE ? 'run' : inAir ? 'dive' : 'down'
-  return { dx: x - s.x, dz: z - s.z, lift, frame }
+  const start = { x: s.x + from.dx, z: s.z + from.dz }
+  const contact = carrierPos(S.tackleT, S)
+  const side = start.x >= contact.x ? 1 : -1
+  let x: number, z: number, lift: number, frame: Frame
+  if (t < S.tackleT) {
+    // Close in to just in front of the carrier, arriving at the moment of contact.
+    const f = prog(t, S.tackleT - CLOSE, S.tackleT)
+    x = lerp(start.x, contact.x + side * 1.1, f)
+    z = lerp(start.z, contact.z, f)
+    if (t < S.tackleT - LAUNCH) { frame = 'run'; lift = 0 }
+    else if (t < S.tackleT - AIR) { frame = 'launch'; lift = 2 * lin(t, S.tackleT - LAUNCH, S.tackleT - AIR) }
+    else { frame = 'dive'; lift = 2 + 6 * Math.sin((Math.PI / 2) * lin(t, S.tackleT - AIR, S.tackleT)) }
+  } else {
+    // Contact: ride the carrier down and end up lying across him.
+    const f = prog(t, S.tackleT, S.tackleT + SETTLE)
+    const c = carrierPos(t, S)
+    // Ends up lying on the carrier's back and legs, so the carrier's helmet and the ball still show.
+    x = lerp(contact.x + side * 1.1, c.x + side * 0.6, f)
+    z = c.z
+    frame = t < S.tackleT + SETTLE * 0.6 ? 'dive' : 'down'
+    lift = lerp(8, 3.5, f)
+  }
+  return { dx: x - s.x, dz: z - s.z, lift, frame, onTop: t >= S.tackleT - 0.05 }
 }
 
 /** Where a defensive back would be if he weren't making the tackle. */
@@ -305,14 +328,20 @@ function move(s: Spot, t: number, S: Sched): Move {
     case 'rb':
       return cheer({ dx: 0.6 * prog(t, SNAP, SNAP + 0.8), dz: -1.1 * prog(t, SNAP, SNAP + 0.8), frame: t > SNAP + 0.5 ? 'block' : 'run' })
     case 'wrFar': case 'wrSlot': case 'wrNear': case 'te': {
-      const [dx, dz] = routePos(s.role, t, S)
-      if (s.role !== S.play.target) return cheer({ dx, dz, frame: t < S.whistle ? 'run' : 'stand' })
+      if (s.role !== S.play.target) {
+        const [dx, dz] = routePos(s.role, t, S)
+        return cheer({ dx, dz, frame: t < S.whistle ? 'run' : 'stand' })
+      }
+      const c = carrierPos(t, S)
+      const dx = c.x - s.x
+      const dz = c.z - s.z
       // The target reaches as the ball arrives, catches it, tucks it and runs until he's brought down.
       const frame: Frame =
         t < S.catchT - REACH ? 'run'
         : t < S.catchT + 0.15 ? 'reach'
         : t < S.tackleT ? 'carry'
         : S.td ? 'hold'
+        : t < S.tackleT + SETTLE * 0.6 ? 'fall'
         : 'downball'
       return cheer({ dx, dz, frame }, true)
     }
@@ -366,8 +395,8 @@ const ballLoose = (t: number, S: Sched) => t < SNAP + SNAP_FLIGHT || (t >= S.thr
 
 const cycle = (name: CycleName): Pose[] => [0, 1, 2, 3].map((i) => `${name}${i}` as Pose)
 const RUN = cycle('run')
-const RECEIVER_FRAMES: Pose[] = [...RUN, ...cycle('reach'), ...cycle('carry'), 'hold', 'stand', 'downball', 'cheer', 'cheerball']
-const DB_FRAMES: Pose[] = [...RUN, 'stand', 'dive', 'down']
+const RECEIVER_FRAMES: Pose[] = [...RUN, ...cycle('reach'), ...cycle('carry'), 'hold', 'stand', 'fall', 'downball', 'cheer', 'cheerball']
+const DB_FRAMES: Pose[] = [...RUN, 'stand', 'launch', 'dive', 'down']
 
 /** Every sprite each role can show (besides its starting pose). */
 const FRAMES: Record<Role, Pose[]> = {
@@ -450,6 +479,9 @@ function layout(): Layout {
   }
   return L
 }
+
+// Built once everything it depends on (routes, tackle constants) is defined.
+const DRIVE = buildDrive()
 
 // ---------------------------------------------------------------- camera
 
@@ -576,7 +608,7 @@ export function Teams() {
         const lift = (m.lift ?? 0) * L.px * k
         p.style.transform = `translate(${sx.toFixed(1)}px, ${(sy - lift).toFixed(1)}px) scale(${(k * L.px).toFixed(3)}) translate(-50%, -100%)`
         // Defense draws over offense at the same depth, so engaged pairs layer consistently.
-        p.style.zIndex = String(Math.round(sy) * 2 + (a.flip ? 1 : 0))
+        p.style.zIndex = String(Math.round(sy) * 2 + (a.flip ? 1 : 0) + (m.onTop ? 6 : 0))
         const key = f.pose ?? 'base'
         if (p.dataset.frame !== key) {
           p.querySelector<HTMLElement>(`img[data-f="${p.dataset.frame ?? 'base'}"]`)?.style.setProperty('opacity', '0')
