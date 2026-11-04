@@ -7,9 +7,12 @@
 //       J jersey, j jersey shade, N jersey number, P pants, p pants shade,
 //       K socks, B cleats, F football, f football shade, L laces, '.' empty
 
-export type Pose = 'stand' | 'ready' | 'stance' | 'run' | 'block' | 'hold' | 'windup' | 'follow' | 'reach' | 'carry'
+export type BasePose = 'stand' | 'ready' | 'stance' | 'block' | 'hold' | 'windup' | 'follow'
+/** Running poses come in a 4-frame cycle: run0..run3, carry0..3, reach0..3, holdrun0..3. */
+export type CycleName = 'run' | 'carry' | 'reach' | 'holdrun'
+export type Pose = BasePose | `${CycleName}${0 | 1 | 2 | 3}`
 
-export const SPRITES: Record<Pose, string[]> = {
+const BASE: Record<BasePose, string[]> = {
   // Upright skill player (QB, WR, safety)
   stand: [
     '....HHHH....',
@@ -157,7 +160,63 @@ export const SPRITES: Record<Pose, string[]> = {
     'B.......KK..',
     '.......BBB..',
   ],
-  // Receiver reaching up for the ball, still in stride
+}
+
+// ---- Running: upper bodies and legs are drawn separately and combined, so every
+// running pose (plain run, carrying the ball, reaching for a catch, the QB's drop
+// with the ball) shares the exact same leg cycle and switching between them
+// never breaks stride.
+
+const HEAD_LEAN = [
+  '.....HHHH...',
+  '....HHHHHH..',
+  '...HhHHHHHH.',
+  '...HhHHHSSM.',
+  '...HhHHHSSM.',
+  '....HHHSSs..',
+]
+
+const UPPER = {
+  // Arms pumping: front arm forward and up, back arm driving back
+  armsA: [...HEAD_LEAN,
+    '..JJJJJJJJ..',
+    '.JJJJJJJJJSS',
+    'SJjJNNNJJJ.S',
+    'S.jJNJNJJ...',
+    '...JNNNJJ...',
+    '...JJJJJJ...'],
+  // Arms passing the body
+  armsMid: [...HEAD_LEAN,
+    '..JJJJJJJJ..',
+    '.JJJJJJJJJ..',
+    '.SjJNNNJJS..',
+    '..SJNJNJJS..',
+    '...JNNNJJ...',
+    '...JJJJJJ...'],
+  // Arms swapped
+  armsB: [...HEAD_LEAN,
+    '..JJJJJJJJ..',
+    'SJJJJJJJJJ..',
+    'SSjJNNNJJJS.',
+    '..jJNJNJJJS.',
+    '...JNNNJJ...',
+    '...JJJJJJ...'],
+  // Ball tucked high and tight, free arm pumping
+  carryA: [...HEAD_LEAN,
+    '..JJJJJJJJ..',
+    '.JJJJJJFFJ..',
+    'SJjJJJFLFJ..',
+    'S.jJJFFLFS..',
+    '...JJffSSJ..',
+    '...JJJJJJ...'],
+  carryB: [...HEAD_LEAN,
+    '..JJJJJJJJ..',
+    '.JJJJJJFFJ..',
+    '.SjJJJFLFJ..',
+    '.SjJJFFLFS..',
+    '...JJffSSJ..',
+    '...JJJJJJ...'],
+  // Both hands up for the catch (one row taller: the hands rise above the helmet)
   reach: [
     '........SS..',
     '....HHHHSS..',
@@ -171,55 +230,61 @@ export const SPRITES: Record<Pose, string[]> = {
     '.JjJNNNJJ...',
     '.JjJNJNJJ...',
     '..jJNNNJ....',
-    '...JJJJJ....',
-    '..PPPPPPP...',
-    '.PPPp..PPP..',
-    'PPP.....PPP.',
-    'KK.......KK.',
-    'BB........BB',
-  ],
-  // Running with the ball tucked high and tight
-  carry: [
-    '.....HHHH...',
-    '....HHHHHH..',
-    '...HhHHHHHH.',
-    '...HhHHHSSM.',
-    '...HhHHHSSM.',
-    '....HHHSSs..',
+    '...JJJJJ....'],
+  // QB on his drop, ball at his chest
+  hold: [
+    '....HHHH....',
+    '...HHHHHH...',
+    '..HhHHHHHH..',
+    '..HhHHHSSM..',
+    '..HhHHHSSM..',
+    '...HHHSSs...',
     '..JJJJJJJJ..',
-    '.JJJJJJFFJ..',
-    'SJjJJJFLFJ..',
-    'S.jJJFFLFS..',
-    '...JJffSSJ..',
-    '...JJJJJJ...',
-    '..PPPPPPP...',
-    '.PPPp..PPP..',
-    'PPP.....PPP.',
-    'KK.......KK.',
-    'BB........K.',
-    '..........BB',
-  ],
-  // Mid-stride, leaning forward
-  run: [
-    '.....HHHH...',
-    '....HHHHHH..',
-    '...HhHHHHHH.',
-    '...HhHHHSSM.',
-    '...HhHHHSSM.',
-    '....HHHSSs..',
-    '..JJJJJJJJ..',
-    '.JJJJJJJJJJS',
-    'SJjJNNNJJJ.S',
-    'S.jJNJNJJJ..',
-    '...JNNNJJ...',
-    '...JJJJJJ...',
-    '..PPPPPPP...',
-    '.PPPp..PPP..',
-    'PPP.....PPP.',
-    'KK.......KK.',
-    'BB........K.',
-    '..........BB',
-  ],
+    '.JJJJJJJJJJ.',
+    '.JjJJJJFFSS.',
+    '.JjJJJFFLFS.',
+    '.SjJJFFLFfJ.',
+    '.SSSSSffJJ..'],
+}
+
+// Four-frame leg cycle: stride, passing, stride (other leg), passing.
+const LEGS = [
+  ['...PPPPPP...',
+   '..PPP.PPPP..',
+   '.PPP....PPP.',
+   '.KK.....KK..',
+   'KK.......KK.',
+   'B.........BB'],
+  ['...PPPPPP...',
+   '...PPPPPPP..',
+   '...PP..PPPP.',
+   '...KK...KK..',
+   '...KK.......',
+   '..BBB.......'],
+  ['...PPPPPP...',
+   '..PPPP.PPP..',
+   '.PPP....PP..',
+   'KK.......KK.',
+   'B........KK.',
+   '.........BBB'],
+  ['...PPPPPP...',
+   '..PPPPPP....',
+   '.PPPP.PP....',
+   'BKK...KK....',
+   '......KK....',
+   '.....BBB....'],
+]
+
+const CYCLES: Record<CycleName, string[][]> = {
+  run: [UPPER.armsA, UPPER.armsMid, UPPER.armsB, UPPER.armsMid],
+  carry: [UPPER.carryA, UPPER.carryB, UPPER.carryA, UPPER.carryB],
+  reach: [UPPER.reach, UPPER.reach, UPPER.reach, UPPER.reach],
+  holdrun: [UPPER.hold, UPPER.hold, UPPER.hold, UPPER.hold],
+}
+
+export const SPRITES = { ...BASE } as Record<Pose, string[]>
+for (const [name, uppers] of Object.entries(CYCLES)) {
+  uppers.forEach((upper, i) => { SPRITES[`${name as CycleName}${i as 0 | 1 | 2 | 3}`] = [...upper, ...LEGS[i]] })
 }
 
 export interface TeamColors {

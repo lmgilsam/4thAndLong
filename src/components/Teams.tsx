@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { reducedMotion } from '../lib/fx'
-import { CRIMSON, GOLD, spriteUrl, type Pose, type TeamColors } from './sprites'
+import { CRIMSON, GOLD, spriteUrl, type BasePose, type CycleName, type Pose, type TeamColors } from './sprites'
 
 // Two teams lined up at the 50 on the home-page field, seen from the sideline.
 // Gold (offense) on the left faces right; crimson (defense) on the right faces
@@ -18,7 +18,7 @@ import { CRIMSON, GOLD, spriteUrl, type Pose, type TeamColors } from './sprites'
 // the defense), z across it (0 = middle of the formation, + = nearer the camera).
 
 type Role = 'ol' | 'te' | 'qb' | 'rb' | 'wr' | 'wrFar' | 'wrNear' | 'dl' | 'lb' | 'cb' | 'cbFar' | 'saf'
-interface Spot { x: number; z: number; pose: Pose; role: Role; skin: number }
+interface Spot { x: number; z: number; pose: BasePose; role: Role; skin: number }
 
 const OFFENSE: Spot[] = [
   { x: -1.2, z: -2.4, pose: 'stance', role: 'ol', skin: 1 },
@@ -68,6 +68,12 @@ const lin = (t: number, a: number, b: number) => clamp01((t - a) / (b - a))
 const ENGAGE = 5
 const LOCK = 0.3 // seconds for the lines to come out of their stances and meet
 
+/**
+ * What a player is doing. 'run', 'carry' and 'reach' play the 4-frame running
+ * cycle while he's moving; 'hold' turns into the running-with-the-ball cycle
+ * when the QB is on the move. The cycle advances with distance covered, so
+ * faster players stride faster and feet never slide.
+ */
 type Frame = 'run' | 'block' | 'hold' | 'windup' | 'follow' | 'reach' | 'carry'
 
 interface Move {
@@ -111,20 +117,51 @@ function move(s: Spot, t: number): Move {
         : 'hold'
       return { dx: 14 * lin(t, SNAP, WHISTLE), dz: 0, frame }
     }
-    case 'rb': return { dx: 0.6 * prog(t, SNAP, SNAP + 0.8), dz: -1.1 * prog(t, SNAP, SNAP + 0.8), frame: t > SNAP + 0.5 ? 'block' : undefined }
+    case 'rb': return { dx: 0.6 * prog(t, SNAP, SNAP + 0.8), dz: -1.1 * prog(t, SNAP, SNAP + 0.8), frame: t > SNAP + 0.5 ? 'block' : 'run' }
     case 'wr': case 'wrFar': return { dx: 14 * lin(t, SNAP, WHISTLE), dz: 0, frame: live ? 'run' : undefined }
     case 'cb': case 'cbFar': return { dx: 12 * lin(t, SNAP + 0.25, WHISTLE), dz: 0, frame: live && t > SNAP + 0.25 ? 'run' : undefined }
-    case 'lb': return { dx: 3 * prog(t, SNAP, SNAP + 2.2), dz: 0 }
+    case 'lb': return { dx: 3 * prog(t, SNAP, SNAP + 2.2), dz: 0, frame: 'run' }
     case 'saf': return { dx: 5 * prog(t, SNAP, WHISTLE), dz: -6.5 * prog(t, SNAP, WHISTLE), frame: live ? 'run' : undefined }
   }
 }
 
-/** Extra sprite frames each role switches between during the play. */
-const FRAMES: Partial<Record<Role, Frame[]>> = {
-  wr: ['run'], wrFar: ['run'], cb: ['run'], cbFar: ['run'], saf: ['run'], te: ['run'],
-  ol: ['block'], dl: ['block'], rb: ['block'],
-  qb: ['hold', 'windup', 'follow'],
-  wrNear: ['run', 'reach', 'carry', 'hold'],
+const RUN_CYCLE: Pose[] = ['run0', 'run1', 'run2', 'run3']
+const cycle = (name: CycleName): Pose[] => [0, 1, 2, 3].map((i) => `${name}${i}` as Pose)
+
+/** Every sprite frame each role can show during the play (besides its starting pose). */
+const FRAMES: Partial<Record<Role, Pose[]>> = {
+  wr: RUN_CYCLE, wrFar: RUN_CYCLE, cb: RUN_CYCLE, cbFar: RUN_CYCLE, saf: RUN_CYCLE, te: RUN_CYCLE, lb: RUN_CYCLE,
+  ol: ['block'], dl: ['block'], rb: [...RUN_CYCLE, 'block'],
+  qb: ['hold', ...cycle('holdrun'), 'windup', 'follow'],
+  wrNear: [...RUN_CYCLE, ...cycle('reach'), ...cycle('carry'), 'hold'],
+}
+
+/** Yards covered per frame of the running cycle. */
+const STRIDE = 0.45
+/** Defenders who turn and run with their man instead of backpedaling. */
+const TURN_AND_RUN = new Set<Role>(['cb', 'cbFar', 'saf', 'lb'])
+
+const distance = (s: Spot, t: number) => {
+  const m = move(s, t)
+  return Math.hypot(m.dx, m.dz)
+}
+
+/** The exact sprite to show for a player at time t, and which way he faces. */
+function pose(s: Spot, t: number, defaultFlip: boolean): { pose: Pose | null; flip: boolean } {
+  const m = move(s, t)
+  const d = distance(s, t)
+  const moving = t > SNAP && (d - distance(s, t - 0.06)) / 0.06 > 0.6 // yards per second
+  const step = Math.floor(d / STRIDE) % 4
+  // Coverage defenders turn to face the way they're running once the play is on.
+  const flip = TURN_AND_RUN.has(s.role) && t > SNAP + 0.2 ? m.dx < 0 : defaultFlip
+  switch (m.frame) {
+    case undefined: return { pose: null, flip }
+    case 'run': return { pose: moving ? (`run${step}` as Pose) : null, flip }
+    case 'carry': return { pose: moving ? (`carry${step}` as Pose) : 'hold', flip }
+    case 'reach': return { pose: `reach${step}` as Pose, flip }
+    case 'hold': return { pose: moving ? (`holdrun${step}` as Pose) : 'hold', flip }
+    default: return { pose: m.frame, flip }
+  }
 }
 
 // Perspective of the turf (.field-perspective / .field-plane in index.css).
@@ -237,7 +274,15 @@ export function Teams() {
         p.style.transform = `translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px) scale(${(k * L.px).toFixed(3)}) translate(-50%, -100%)`
         // Defense draws over offense at the same depth, so engaged pairs layer consistently.
         p.style.zIndex = String(Math.round(sy) * 2 + (a.flip ? 1 : 0))
-        if (p.dataset.frame !== (m.frame ?? '')) p.dataset.frame = m.frame ?? ''
+        const f = pose(a.spot, t, a.flip)
+        const key = f.pose ?? 'base'
+        if (p.dataset.frame !== key) {
+          p.querySelector<HTMLElement>(`img[data-f="${p.dataset.frame ?? 'base'}"]`)?.style.setProperty('opacity', '0')
+          p.querySelector<HTMLElement>(`img[data-f="${key}"]`)?.style.setProperty('opacity', '1')
+          p.dataset.frame = key
+          p.classList.toggle('moving', key !== 'base' && !['block', 'hold', 'windup', 'follow'].includes(key))
+        }
+        p.classList.toggle('flip', f.flip)
       })
       const [bx, bz, bux, lift] = ballAt(t)
       const b = project(L, bx, bz, bux)
@@ -258,7 +303,7 @@ export function Teams() {
       {ACTORS.map((a, i) => {
         const base = spriteUrl(a.spot.pose, a.team, a.spot.skin)
         return (
-          <div key={i} className={`pl ${a.flip ? 'flip' : ''} ${i % 2 ? 'bob-b' : 'bob-a'}`} style={{ width: base.w, height: base.h }}>
+          <div key={i} className={`pl ${a.flip ? 'flip' : ''} ${i % 2 ? 'bob-b' : 'bob-a'}`} data-frame="base" style={{ width: base.w, height: base.h }}>
             <img src={base.url} alt="" data-f="base" draggable={false} />
             {(FRAMES[a.spot.role] ?? []).map((f) => {
               const s = spriteUrl(f, a.team, a.spot.skin)
