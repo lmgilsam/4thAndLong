@@ -228,7 +228,7 @@ export function Drive({ session, initial, onComplete, paused = false }: {
           <p className="hint">▸ rarer answers gain more yards</p>
 
           {phase === 'presnap' ? (
-            <div className="presnap" aria-live="polite">
+            <div className="snap-count" aria-live="polite">
               <span key={waiting ? 'huddle' : presnapWord} className="presnap-word">{waiting ? 'HUDDLE' : presnapWord}</span>
               <span className="presnap-sub">{waiting ? 'play clock starts after the huddle' : 'play clock starts at the snap'}</span>
             </div>
