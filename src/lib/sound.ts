@@ -13,9 +13,9 @@ let muted = (() => {
 
 const listeners = new Set<(m: boolean) => void>()
 
-// A real crowd recording (public/sounds/crowd-cheer.mp3) layered into the big
-// cheers. It loads after the first sound plays; until then, or if it fails,
-// the synthesized cheer is used on its own.
+// A real crowd recording (public/sounds/crowd-cheer.mp3) used for every crowd
+// reaction to a correct answer (Slant through Hail Mary). It loads after the
+// first sound plays; until then, or if it fails, a synthesized crowd stands in.
 const CROWD_URL = `${import.meta.env.BASE_URL}sounds/crowd-cheer.mp3`
 const samples: { cheer: AudioBuffer | null; loading: Promise<void> | null } = { cheer: null, loading: null }
 
@@ -206,10 +206,13 @@ function claps(count: number, spread: number, at = 0, vol = 0.07) {
 }
 
 /**
- * Plays the recorded crowd with a quick swell and a fade-out. Each play
+ * Plays a slice of the recorded crowd with a swell and a fade-out. Each play
  * starts at a slightly different spot and speed so it never sounds identical.
+ * The 7s recording is a steady roar from about 0.5s to 4.5s, then dies down to
+ * scattered applause by 6.5s. `from` picks where to start; `lowpass` softens
+ * it so a smaller reaction sounds farther away instead of just quieter.
  */
-function crowdSample(vol: number, dur: number, at = 0): boolean {
+function crowdSample(vol: number, dur: number, at = 0, opts: { from?: [number, number]; lowpass?: number; attack?: number } = {}): boolean {
   const ac = audio()
   const buf = samples.cheer
   if (!ac || !master || !buf) return false
@@ -219,22 +222,38 @@ function crowdSample(vol: number, dur: number, at = 0): boolean {
   src.playbackRate.value = rnd(0.95, 1.05)
   const g = ac.createGain()
   g.gain.setValueAtTime(0.0001, t0)
-  g.gain.exponentialRampToValueAtTime(vol, t0 + 0.12)
+  g.gain.exponentialRampToValueAtTime(vol, t0 + (opts.attack ?? 0.12))
   g.gain.setValueAtTime(vol, t0 + dur * 0.45)
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur)
-  src.connect(g).connect(master)
-  src.start(t0, rnd(0, 0.35))
+  let node: AudioNode = src
+  if (opts.lowpass) {
+    const f = ac.createBiquadFilter()
+    f.type = 'lowpass'
+    f.frequency.value = opts.lowpass
+    f.Q.value = 0.5
+    node = src.connect(f)
+  }
+  node.connect(g).connect(master)
+  const [a, b] = opts.from ?? [0, 0.35]
+  src.start(t0, rnd(a, b))
   src.stop(t0 + dur + 0.05)
   return true
 }
 
 /**
- * Crowd cheering. level 1 = nice play, 2 = big play, 3 = the place erupts.
- * Levels 2-3 are built on the real crowd recording, with the synth roar and
- * claps mixed underneath. Level 1 (and any cheer before the recording has
- * loaded) is fully synthesized.
+ * Crowd reaction, all built on the real recording:
+ *   0 = Slant: the recording's dying-down applause, quiet and softened (about 1.6s)
+ *   1 = Chunk Play: a short slice of the roar, a bit muffled (about 2.1s)
+ *   2 = Deep Ball / field goal: the full roar plus a light synth roar and claps
+ *   3 = Hail Mary / touchdown: the place erupts
+ * Before the recording has loaded (or if it fails), a synthesized crowd stands in.
  */
 function cheer(level: number, at = 0, long = false) {
+  if (level === 0) {
+    if (!crowdSample(0.3, 1.6, at, { from: [4.35, 4.7], lowpass: 2600, attack: 0.05 })) claps(14, 0.9, at, 0.05)
+    return
+  }
+  if (level === 1 && crowdSample(0.34, 2.1, at, { from: [1.6, 2.6], lowpass: 4500, attack: 0.08 })) return
   const dur = 1.3 + level * 0.7
   if (level >= 2 && crowdSample(level === 2 ? 0.42 : 0.72, (long ? 5.2 : 2.4 + (level - 2) * 1.2), at)) {
     crowd(0.25 + level * 0.15, dur, at)
@@ -305,17 +324,16 @@ export const sound = {
     boo(0.25)
   },
   /**
-   * Correct answer. Rarer tiers get more notes and a bigger crowd:
-   * Slant gets a smattering of applause, Chunk Play a cheer, Deep Ball a big
-   * cheer, Hail Mary the whole stadium plus an air horn.
+   * Correct answer. Rarer tiers get more notes and a bigger (real) crowd:
+   * Slant gets scattered applause, Chunk Play a cheer, Deep Ball a big cheer,
+   * Hail Mary the whole stadium plus an air horn. Checkdown is chime only.
    */
   hit(tier: number) {
     for (let i = 0; i < tier; i++) {
       tone({ freq: CHIME[i], type: 'triangle', dur: 0.32, vol: 0.14, at: i * 0.075 })
       tone({ freq: CHIME[i] * 2, type: 'sine', dur: 0.2, vol: 0.03, at: i * 0.075 })
     }
-    if (tier === 2) claps(14, 0.9, 0.1, 0.05)
-    if (tier >= 3) cheer(tier - 2, 0.05)
+    if (tier >= 2) cheer(tier - 2, tier === 2 ? 0.1 : 0.05)
     if (tier >= 5) airhorn(0.3, 0.7)
   },
   touchdown() {

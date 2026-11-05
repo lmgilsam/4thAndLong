@@ -83,13 +83,13 @@ index.html               Page title and Open Graph / link preview tags
 
 ## Scoring
 
-| Tier | Name | Points | Yards | Share emoji |
+| Tier | Name | Points | Yards | Share emoji / color |
 |---|---|---|---|---|
-| 1 | Checkdown | 10 | +1 | ⬜ |
-| 2 | Slant | 30 | +3 | 🟦 |
-| 3 | Chunk Play | 60 | +6 | 🟩 |
-| 4 | Deep Ball | 80 | +8 | 🟨 |
-| 5 | Hail Mary | 100 | +10 | 🟥 |
+| 1 | Checkdown | 10 | +1 | ⬜ white `#eef2ee` |
+| 2 | Slant | 30 | +3 | 🟩 green `#7ddc5f` |
+| 3 | Chunk Play | 60 | +6 | 🟦 blue `#4fa3ff` |
+| 4 | Deep Ball | 80 | +8 | 🟪 purple `#b57bff` |
+| 5 | Hail Mary | 100 | +10 | 🟨 yellow `#ffd23f` |
 
 10 points = 1 yard. Max score is 700. Misses: **Turnover on Downs** (3 wrong guesses) and **Delay of Game** (clock runs out), both ⬛. All of this lives in `src/engine/tiers.ts`; change it there only.
 
@@ -155,7 +155,7 @@ Domain: **4thandlong.io** (bought through Vercel, live Nov 5, 2026). The apex is
 ## Feel: sound and effects
 
 - Sounds (`src/lib/sound.ts`): button click, READY/SET/HUT cadence, whistle at the snap, ticks in the last 5 seconds, thud on a wrong answer, buzzer on delay of game, and touchdown / field goal / punt stingers on the results screen. Mute toggle sits top right.
-- Crowd: correct answers get a chime (one note per tier) plus a crowd that scales with rarity: Checkdown silent, Slant light applause, Chunk Play a cheer, Deep Ball a big cheer, Hail Mary the whole stadium plus an air horn. Turnover on Downs gets a short buzzer and boos. Chunk Play and the boos are fully synthesized (noise + vowel-filtered "voices" + claps). Deep Ball, Hail Mary, Touchdown and Field Goal are built on a real crowd recording, `public/sounds/crowd-cheer.mp3` (from Pixabay, free to use under the Pixabay Content License, no attribution needed; trimmed to 7s, normalized to -16 LUFS), with the synth roar, claps and air horn mixed underneath. The recording loads after the first sound plays; if it hasn't loaded or fails, `cheer()` falls back to the synth-only version.
+- Crowd: correct answers get a chime (one note per tier) plus a crowd that scales with rarity: Checkdown silent, Slant scattered applause, Chunk Play a cheer, Deep Ball a big cheer, Hail Mary the whole stadium plus an air horn. Turnover on Downs gets a short buzzer and boos (boos are fully synthesized: noise + vowel-filtered "voices"). Every crowd reaction from Slant up, plus Touchdown and Field Goal, uses a real crowd recording (`crowdSample()` in `cheer()`): Slant plays the recording's dying-down applause tail (from ~4.4s) quiet and lowpassed at 2.6 kHz, Chunk Play a lowpassed 2.1s slice of the roar, Deep Ball and up the full roar. The recording is `public/sounds/crowd-cheer.mp3` (from Pixabay, free to use under the Pixabay Content License, no attribution needed; trimmed to 7s, normalized to -16 LUFS); Deep Ball and up mix a light synth roar, claps and the air horn underneath. The recording loads after the first sound plays; if it hasn't loaded or fails, `cheer()` falls back to a synthesized crowd.
 - Crowd on screen (`fx.crowd`): on a cheer the dark drive overlay lifts, the stands bounce and camera flashes fire; on boos the stands dim and the flashes stop.
 - Visuals: stadium lights flicker on, haze beams, crowd camera flashes, title slam, hero button shine, score count-up, ball arc and "+N" yard pop, red vignette when the clock is under 5, confetti for Chunk Play and up (footballs on Hail Mary), screen shake on Hail Mary and Touchdown.
 - Home field (`Teams.tsx`): gold (offense, left) drives on crimson, seen from the sideline. `PLAYS` is a 4-play drive (slant, seam, out, then a post for a touchdown) starting at gold's own 45 (`START_LOS`); each play's ball is spotted where the carrier finishes (`buildDrive()`), and the camera (`cameraAt()`) follows the ball and pans to the next line of scrimmage while players are faded out. Every play uses the same blocking and QB motion; only routes (`routes`, waypoints from each receiver's spot) and the target/catch point (`target`, `catchAt`) change, and throw/catch/whistle timing is derived from them. Corners play man (`MAN`), the safety drives on the ball, linebackers drop and drift. Non-target receivers keep running past the end of their route until the whistle (`along(..., extend)`), then stand; nobody returns to a three-point stance mid-play. Each non-touchdown play ends with a tackle (`tackle()`), one continuous motion timed around contact at `tackleT`: the corner covering the target (or the safety, for the tight end) closes for `CLOSE` seconds, pushes off (`launch`), flies in laid out (`dive`), hits the carrier and drives him back `DRIVE_BACK` yards while the carrier goes `fall` → `downball`; the tackler settles into `down` lying on the carrier's back and legs (`onTop`, lifted a few sprite px) so the carrier's helmet and the ball still show. The next play is spotted where the carrier lands (`carrierPos()`). The field (stripes, yard lines, goal line, end zone, blue line of scrimmage, yellow line to gain) is drawn in SVG by `fieldSvg()` so it scrolls; on the home view it covers the static CSS turf. On the touchdown, offense switches to `cheer` (scorer `cheerball`) and jumps, defense stands, and the backdrop crowd goes wild (`fx.crowd`); then the drive restarts. Whole loop is about 41s.

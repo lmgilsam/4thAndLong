@@ -13,11 +13,11 @@ export interface TierMeta {
 // Points convert to yards at 10 pts = 1 yd. The drive starts at midfield,
 // so 500 points (50 yards) is a touchdown.
 export const TIERS: Record<TierId, TierMeta> = {
-  1: { id: 1, name: 'Checkdown', points: 10, yards: 1, color: '#b9c4bd', emoji: '⬜', blurb: 'Safe throw. Everybody had that one.' },
-  2: { id: 2, name: 'Slant', points: 30, yards: 3, color: '#5ccfe6', emoji: '🟦', blurb: 'Quick hitter. Moves the chains a little.' },
-  3: { id: 3, name: 'Chunk Play', points: 60, yards: 6, color: '#8be36b', emoji: '🟩', blurb: "Nice gain. Plenty of people didn't see it." },
-  4: { id: 4, name: 'Deep Ball', points: 80, yards: 8, color: '#ffc845', emoji: '🟨', blurb: 'Dropped it in the bucket. Few go there.' },
-  5: { id: 5, name: 'Hail Mary', points: 100, yards: 10, color: '#ff5a5f', emoji: '🟥', blurb: 'Prayer answered. Almost nobody had that.' },
+  1: { id: 1, name: 'Checkdown', points: 10, yards: 1, color: '#eef2ee', emoji: '⬜', blurb: 'Safe throw. Everybody had that one.' },
+  2: { id: 2, name: 'Slant', points: 30, yards: 3, color: '#7ddc5f', emoji: '🟩', blurb: 'Quick hitter. Moves the chains a little.' },
+  3: { id: 3, name: 'Chunk Play', points: 60, yards: 6, color: '#4fa3ff', emoji: '🟦', blurb: "Nice gain. Plenty of people didn't see it." },
+  4: { id: 4, name: 'Deep Ball', points: 80, yards: 8, color: '#b57bff', emoji: '🟪', blurb: 'Dropped it in the bucket. Few go there.' },
+  5: { id: 5, name: 'Hail Mary', points: 100, yards: 10, color: '#ffd23f', emoji: '🟨', blurb: 'Prayer answered. Almost nobody had that.' },
 }
 
 export const MISS = {

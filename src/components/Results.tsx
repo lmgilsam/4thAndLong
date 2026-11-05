@@ -115,7 +115,7 @@ export function Results({ state, prompts, label, stats, mode, celebrate = false,
         fx.flash('#ffc845', 0.35)
         fx.quake()
       })
-      const colors = ['#ffc845', '#f2efe4', '#ff5a5f', '#5ccfe6']
+      const colors = ['#ffd23f', '#f2efe4', '#b57bff', '#4fa3ff']
       ;[[0.5, 0.35], [0.2, 0.5], [0.8, 0.5], [0.35, 0.3], [0.65, 0.3]].forEach(([x, y], i) =>
         later(200 + i * 380, () => fx.confetti({ colors, count: 90, x, y, power: 1.1, spread: 85, footballs: true })))
     } else if (outcome.kind === 'fg') {

@@ -22,7 +22,7 @@ const { chromium } = require('playwright');
   `});
   await p.evaluate(() => {
     const c = document.createElement('div'); c.className = 'og-card';
-    const colors = ['#ff5a5f', '#8be36b', '#ffc845', '#5ccfe6', '#ff5a5f', '#b9c4bd', '#8be36b'];
+    const colors = ['#ffd23f', '#4fa3ff', '#b57bff', '#7ddc5f', '#ffd23f', '#eef2ee', '#4fa3ff'];
     c.innerHTML = '<div class="og-squares">' + colors.map(x => `<i style="background:${x}"></i>`).join('') + '</div><div class="og-url">4THANDLONG.IO</div>';
     document.body.appendChild(c);
   });
