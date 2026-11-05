@@ -118,7 +118,7 @@ select * from ref_report(30);
 ```
 
 It shows visitors, players who finished a drive, total drives, and players who came back
-on 2+ days for each ref. Shared results use a clean link and count as `direct`.
+on 2+ days for each ref. Shared results use a result link (`/r/<code>`) whose chat preview is a picture of the result; players who arrive through one count as `share`.
 
 The link preview image is `public/og.jpg`. To redo it after a design change, run
 `npm run dev`, then `node scripts/og-image.cjs`.

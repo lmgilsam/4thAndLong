@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { GAME_SUBTITLE, SHARE_URL } from '../config'
+import { SHARE_URL } from '../config'
 import type { PromptDef } from '../data/types'
 import { rarestAnswers } from '../engine/match'
 import { msUntilNextDrive } from '../engine/schedule'
 import type { DriveState, Stats } from '../engine/storage'
+import { encodeShare } from '../engine/share'
 import { driveOutcome, MAX_SCORE, MISS, START_YARD_LINE, TIERS } from '../engine/tiers'
 import { backendEnabled, fetchDistribution, type Distribution } from '../lib/backend'
 import { fx } from '../lib/fx'
@@ -23,11 +24,9 @@ function useCountdown() {
   return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-export function buildShareText(state: DriveState, label: string): string {
-  const { score, yards } = totals(state.results)
-  const o = driveOutcome(yards)
-  const squares = state.results.map((r) => (r.tier ? TIERS[r.tier].emoji : MISS[r.outcome as 'delay'].emoji)).join('')
-  return `${GAME_SUBTITLE} ${label} 🏈\n${score} pts · ${o.label}\n${squares}\n${SHARE_URL}`
+/** Share is just a link: chat apps turn /r/<code> into a picture of the result (api/card.ts). */
+export function buildShareUrl(state: DriveState, mode: 'daily' | 'practice'): string {
+  return `${SHARE_URL}/r/${encodeShare(state.driveNo, mode === 'practice', state.results)}`
 }
 
 function DriveChart({ state }: { state: DriveState }) {
@@ -137,7 +136,7 @@ export function Results({ state, prompts, label, stats, mode, celebrate = false,
   }, [mode, state.date, score])
 
   async function share() {
-    const text = buildShareText(state, label)
+    const text = buildShareUrl(state, mode)
     try {
       await navigator.clipboard.writeText(text)
       setCopied(true)
@@ -161,7 +160,7 @@ export function Results({ state, prompts, label, stats, mode, celebrate = false,
           <div><span className="led big">{shownScore}</span><span className="sb-label">POINTS</span></div>
           <div><span className="led big">{shownYards}</span><span className="sb-label">YARDS</span></div>
         </div>
-        <button className="btn btn-primary" onClick={share}>{copied ? 'COPIED ✓' : 'SHARE RESULT'}</button>
+        <button className="btn btn-primary" onClick={share}>{copied ? 'LINK COPIED ✓' : 'SHARE RESULT'}</button>
         {manualCopy && (
           <textarea className="manual-copy" readOnly value={manualCopy} rows={4} onFocus={(e) => e.currentTarget.select()} aria-label="Your result, ready to copy" />
         )}

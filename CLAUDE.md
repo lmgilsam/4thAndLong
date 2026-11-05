@@ -75,9 +75,13 @@ src/components/Teams.tsx    Home-page field: pixel-art teams running a looping 4
 src/components/sprites.ts   The original 8-bit player sprites (stand, ready, stance, block, hold, windup, follow, cheer, cheerball, launch, dive, fall, down, downball + 4-frame run/carry/reach/holdrun cycles), team colors, skin tones
 scripts/schedule-lock.json  Frozen prompt ids for every drive already played
 src/App.tsx              Views (home / drive / results), daily vs practice sessions
-src/components/          Drive, Results (share text, histogram), Scoreboard, FieldStrip, HowToPlay, RouteArt
+src/components/          Drive, Results (share link, histogram), Scoreboard, FieldStrip, HowToPlay, RouteArt
+src/engine/share.ts      Result link codes (/r/3-2222121): encodeShare / decodeShare / shareLabel
+api/r.ts                 Edge function behind /r/<code> (vercel.json rewrite): the game page with result og tags
+api/card.ts, api/_lib/card.ts  Edge function drawing the 1200x630 PNG result card with @vercel/og
+public/og/               Card background (card-bg.jpg, from scripts/card-bg.cjs) and the .woff fonts the card uses
 supabase/schema.sql      Tables + RPC functions. Run once in Supabase SQL Editor.
-scripts/                 validate-data, match-cases, dump-drive, og-image.cjs (link preview), build_team_data.py (+ legends.py) to regenerate team prompts from nflverse data
+scripts/                 validate-data, match-cases, dump-drive, og-image.cjs (link preview), card-bg.cjs (result card background), build_team_data.py (+ legends.py) to regenerate team prompts from nflverse data
 index.html               Page title and Open Graph / link preview tags
 ```
 
@@ -147,7 +151,8 @@ Domain: **4thandlong.io** (bought through Vercel, live Nov 5, 2026). The apex is
 ## Marketing: link preview and ref tracking
 
 - **Link preview:** `public/og.jpg` (1200x630, about 100 KB so WhatsApp/iMessage show it) plus og/twitter tags in `index.html` (`summary_large_image`). Regenerate with `node scripts/og-image.cjs` while `npm run dev` is running; it screenshots the real home page, hides the buttons, and overlays a tier-square row and the URL. Keep it under ~300 KB. Chats cache previews, so a changed image can take a while to show up.
-- **Ref tracking:** links like `https://4thandlong.io/?ref=reddit-texans` (or `utm_source=`). `src/lib/ref.ts` runs before render: saves the first ref a browser ever arrives with (`dd:ref`, cleaned to a-z 0-9 - _, max 32 chars), then strips ref/utm params from the address bar. `logArrival()` sends one `log_arrival` RPC per browser (`dd:ref-sent`), and `submitDrive()` sends `p_ref` with every drive (it retries without `p_ref` if the database hasn't been updated). Share text stays a clean URL; tagless players count as `direct`.
+- **Result links (Share button):** Share copies only a link, e.g. `https://4thandlong.io/r/3-2222121` (drive 3, then one digit per play: the tier, 0 for a miss; practice is `p-<tiers>` or `p5-<tiers>` for a replay). Points, yards and outcome are recomputed from the tiers, so links can't show impossible scores. `vercel.json` rewrites `/r/<code>` to `api/r.ts`, which fetches the normal `index.html`, swaps the og/twitter tags for the result, and adds `<base href="/">` so the relative assets load. og:image is `api/card.ts?c=<code>`, a PNG drawn by `@vercel/og` (pinned to 0.11.1: 1.0.x shipped without a wasm file it needs) from `public/og/card-bg.jpg` and the `.woff` fonts in `public/og/` (Satori can't read woff2). Cards are about 275 KB; keep them under ~300 KB for WhatsApp (the crowd is blurred in the background for that reason). Regenerate the background with `node scripts/card-bg.cjs` while `npm run dev` runs. In the browser, `ref.ts` sends `/r/...` visitors to `/` and tags them `share`. Bad codes redirect to `/` (page) or `/og.jpg` (image). The API code is type-checked through `tsconfig.api.json`.
+- **Ref tracking:** links like `https://4thandlong.io/?ref=reddit-texans` (or `utm_source=`). `src/lib/ref.ts` runs before render: saves the first ref a browser ever arrives with (`dd:ref`, cleaned to a-z 0-9 - _, max 32 chars), then strips ref/utm params from the address bar. `logArrival()` sends one `log_arrival` RPC per browser (`dd:ref-sent`), and `submitDrive()` sends `p_ref` with every drive (it retries without `p_ref` if the database hasn't been updated). Players who arrive through a shared result link count as `share`; tagless players count as `direct`.
 - **Reading results:** in the Supabase SQL Editor run `select * from ref_report(30);` (visitors, players who finished a drive, drives, and players who came back on 2+ days, per ref). `ref_report` is not granted to anon.
 - Vercel Web Analytics on Hobby doesn't show UTM/ref breakdowns (that's Web Analytics Plus), which is why refs live in Supabase.
 - **Ref naming convention:** `channel-detail`, lowercase with hyphens, e.g. `reddit-texans`, `tiktok`, `ig-bio`, `x`, `gc-fantasy`, `uh`, `creator-<name>`.

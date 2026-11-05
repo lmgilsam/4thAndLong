@@ -2,7 +2,8 @@
 // tag a visit. The first tag a player ever arrives with is kept (first touch), sent once
 // to Supabase as an "arrival", and attached to every drive they finish, so we can see
 // which channels bring players who actually play. utm_source works too.
-// Players with no tag show up as "direct" (typed it, bookmarks, or a shared result).
+// Players who arrive from a shared result link (/r/<code>) count as "share".
+// Players with no tag show up as "direct" (typed it or bookmarks).
 
 const KEY_REF = 'dd:ref'
 const KEY_REF_SENT = 'dd:ref-sent'
@@ -39,11 +40,14 @@ function set(key: string, value: string) {
 export function captureRef(): void {
   if (typeof window === 'undefined') return
   const url = new URL(window.location.href)
-  const ref = cleanRef(url.searchParams.get('ref') ?? url.searchParams.get('utm_source'))
+  const fromShare = url.pathname.startsWith('/r/')
+  const ref = cleanRef(url.searchParams.get('ref') ?? url.searchParams.get('utm_source') ?? (fromShare ? 'share' : null))
   if (ref && !get(KEY_REF)) set(KEY_REF, ref)
-  if (PARAMS.some((p) => url.searchParams.has(p))) {
+  if (fromShare || PARAMS.some((p) => url.searchParams.has(p))) {
     PARAMS.forEach((p) => url.searchParams.delete(p))
-    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash)
+    // A shared result link (/r/3-2222121) is just a way in: show the plain home page URL.
+    const path = fromShare ? '/' : url.pathname
+    window.history.replaceState(window.history.state, '', path + url.search + url.hash)
   }
 }
 
