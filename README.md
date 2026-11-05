@@ -23,7 +23,7 @@ Handy URLs while testing:
 | Slant | 30 | +3 |
 | Chunk Play | 60 | +6 |
 | Deep Ball | 80 | +8 |
-| House Call | 100 | +10 |
+| Hail Mary | 100 | +10 |
 
 - The ball starts at midfield. 50 yards (500 pts) is a touchdown; reaching the opponent 35 is field goal range.
 - A wrong answer burns a down. Three misses = Turnover on Downs. Clock runs out = Delay of Game.

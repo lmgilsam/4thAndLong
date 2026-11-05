@@ -5,7 +5,7 @@ import { BATCH_3 } from './prompts-batch3'
 import { BATCH_4 } from './prompts-batch4'
 
 // Every prompt lists its accepted answers grouped by seeded rarity tier:
-//   1 Checkdown (everyone says it) -> 5 House Call (almost nobody says it)
+//   1 Checkdown (everyone says it) -> 5 Hail Mary (almost nobody says it)
 // Tiers here are educated guesses. Once real players answer, rarity is
 // recalculated from actual answer frequency (see supabase/schema.sql).
 // Facts checked through the 2025 NFL season / Super Bowl LX (Feb 2026).

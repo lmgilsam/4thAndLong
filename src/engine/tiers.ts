@@ -17,7 +17,7 @@ export const TIERS: Record<TierId, TierMeta> = {
   2: { id: 2, name: 'Slant', points: 30, yards: 3, color: '#5ccfe6', emoji: '🟦', blurb: 'Quick hitter. Moves the chains a little.' },
   3: { id: 3, name: 'Chunk Play', points: 60, yards: 6, color: '#8be36b', emoji: '🟩', blurb: "Nice gain. Plenty of people didn't see it." },
   4: { id: 4, name: 'Deep Ball', points: 80, yards: 8, color: '#ffc845', emoji: '🟨', blurb: 'Dropped it in the bucket. Few go there.' },
-  5: { id: 5, name: 'House Call', points: 100, yards: 10, color: '#ff5a5f', emoji: '🟥', blurb: 'Took it the distance. Almost nobody had that.' },
+  5: { id: 5, name: 'Hail Mary', points: 100, yards: 10, color: '#ff5a5f', emoji: '🟥', blurb: 'Prayer answered. Almost nobody had that.' },
 }
 
 export const MISS = {

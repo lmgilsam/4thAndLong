@@ -75,6 +75,7 @@ export default function App() {
     setActive({ session: { mode: 'practice', label, prompts }, state: freshState(date, replay ?? 0, prompts) })
     setCelebrate(false)
     setView('drive')
+    if (!hasSeenHelp()) setHelp(true)
   }, [today])
 
   useEffect(() => {
@@ -125,7 +126,7 @@ export default function App() {
           />
         )}
         {view === 'drive' && active && (
-          <Drive key={active.session.label + active.state.date} session={active.session} initial={active.state} onComplete={onComplete} />
+          <Drive key={active.session.label + active.state.date} session={active.session} initial={active.state} onComplete={onComplete} paused={help} />
         )}
         {view === 'results' && active && (
           <Results

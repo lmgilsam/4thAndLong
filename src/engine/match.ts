@@ -134,7 +134,7 @@ export function matchAnswer(p: PromptDef, raw: string): MatchResult {
   return { kind: 'miss' }
 }
 
-/** Rarest answers first, used to show "the House Call you could've had". */
+/** Rarest answers first, used to show "the Hail Mary you could've had". */
 export function rarestAnswers(p: PromptDef, n = 1): AnswerDef[] {
   return [...p.answers].sort((a, b) => b.tier - a.tier).slice(0, n)
 }

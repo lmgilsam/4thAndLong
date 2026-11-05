@@ -24,10 +24,12 @@ export function totals(results: PlayResult[]) {
   return results.reduce((t, r) => ({ score: t.score + r.points, yards: t.yards + r.yards }), { score: 0, yards: 0 })
 }
 
-export function Drive({ session, initial, onComplete }: {
+export function Drive({ session, initial, onComplete, paused = false }: {
   session: Session
   initial: DriveState
   onComplete: (s: DriveState) => void
+  /** True while How to Play is open: the first play waits in the huddle and the clock doesn't start. */
+  paused?: boolean
 }) {
   const [state, setState] = useState<DriveState>(initial)
   const [revealing, setRevealing] = useState<PlayResult | null>(null)
@@ -61,10 +63,10 @@ export function Drive({ session, initial, onComplete }: {
 
   // Start (or resume) the clock for the current play.
   useEffect(() => {
-    if (!ready || revealing || state.finished || !prompt) return
+    if (!ready || paused || revealing || state.finished || !prompt) return
     if (state.current?.index === index) return
     persist({ ...state, current: { index, startedAt: Date.now() + PRESNAP_MS, guesses: [] } })
-  }, [ready, index, prompt, revealing, state, persist])
+  }, [ready, paused, index, prompt, revealing, state, persist])
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 100)
@@ -74,7 +76,8 @@ export function Drive({ session, initial, onComplete }: {
   const cur = state.current?.index === index ? state.current : undefined
   const msLeft = cur ? cur.startedAt + PLAY_CLOCK_SECONDS * 1000 - now : PLAY_CLOCK_SECONDS * 1000
   const presnapLeft = cur ? cur.startedAt - now : PRESNAP_MS
-  const phase: 'presnap' | 'live' | 'reveal' = revealing ? 'reveal' : presnapLeft > 0 ? 'presnap' : 'live'
+  const phase: 'presnap' | 'live' | 'reveal' = revealing ? 'reveal' : !cur || presnapLeft > 0 ? 'presnap' : 'live'
+  const waiting = paused && !cur && !revealing
   const guesses = cur?.guesses ?? []
 
   const finishPlay = useCallback((result: PlayResult) => {
@@ -169,8 +172,8 @@ export function Drive({ session, initial, onComplete }: {
   // Cadence on READY / SET / HUT, whistle at the snap.
   const prevPhase = useRef(phase)
   useEffect(() => {
-    if (ready && phase === 'presnap') sound.cadence(presnapWord)
-  }, [ready, phase, presnapWord])
+    if (ready && !waiting && phase === 'presnap') sound.cadence(presnapWord)
+  }, [ready, waiting, phase, presnapWord])
   useEffect(() => {
     if (prevPhase.current === 'presnap' && phase === 'live') sound.whistle()
     prevPhase.current = phase
@@ -216,7 +219,7 @@ export function Drive({ session, initial, onComplete }: {
       )}
 
       {ready && phase !== 'reveal' && prompt && (
-        <section className={`play-card ${phase} ${shaking ? 'shaking' : ''} ${urgent ? 'urgent' : ''}`} key={index}>
+        <section className={`play-card ${phase} ${waiting ? 'waiting' : ''} ${shaking ? 'shaking' : ''} ${urgent ? 'urgent' : ''}`} key={index}>
           <div className="play-card-top">
             <span className="tag">{session.label} · PLAY {index + 1}</span>
             <span className="tag tag-cat">{prompt.tag}</span>
@@ -226,8 +229,8 @@ export function Drive({ session, initial, onComplete }: {
 
           {phase === 'presnap' ? (
             <div className="presnap" aria-live="polite">
-              <span key={presnapWord} className="presnap-word">{presnapWord}</span>
-              <span className="presnap-sub">play clock starts at the snap</span>
+              <span key={waiting ? 'huddle' : presnapWord} className="presnap-word">{waiting ? 'HUDDLE' : presnapWord}</span>
+              <span className="presnap-sub">{waiting ? 'play clock starts after the huddle' : 'play clock starts at the snap'}</span>
             </div>
           ) : (
             <>

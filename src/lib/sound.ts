@@ -307,7 +307,7 @@ export const sound = {
   /**
    * Correct answer. Rarer tiers get more notes and a bigger crowd:
    * Slant gets a smattering of applause, Chunk Play a cheer, Deep Ball a big
-   * cheer, House Call the whole stadium plus an air horn.
+   * cheer, Hail Mary the whole stadium plus an air horn.
    */
   hit(tier: number) {
     for (let i = 0; i < tier; i++) {
