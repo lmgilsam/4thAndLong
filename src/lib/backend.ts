@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { PlayResult } from '../engine/storage'
+import { arrivalSent, firstRef, markArrivalSent } from './ref'
 
 // Global stats are optional. With VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
 // set (Vercel env vars), results are saved and the "vs. everyone" chart turns on.
@@ -33,7 +34,7 @@ export async function submitDrive(opts: {
 }): Promise<void> {
   const sb = db()
   if (!sb) return
-  const { error } = await sb.rpc('submit_drive', {
+  const args = {
     p_date: opts.date,
     p_player: opts.player,
     p_score: opts.score,
@@ -45,8 +46,20 @@ export async function submitDrive(opts: {
       outcome: p.outcome,
       guesses: p.guesses.length,
     })),
-  })
+  }
+  let { error } = await sb.rpc('submit_drive', { ...args, p_ref: firstRef() })
+  // Database not updated to the version with p_ref yet: save the drive without it.
+  if (error && /p_ref|function/i.test(error.message)) ({ error } = await sb.rpc('submit_drive', args))
   if (error) console.warn('[daily-drive] submit failed', error.message)
+}
+
+/** Count this browser once, with the channel it first came from (null = direct). */
+export async function logArrival(player: string): Promise<void> {
+  const sb = db()
+  if (!sb || arrivalSent()) return
+  const { error } = await sb.rpc('log_arrival', { p_player: player, p_ref: firstRef() })
+  if (error) console.warn('[daily-drive] arrival failed', error.message)
+  else markArrivalSent()
 }
 
 export async function fetchDistribution(date: string, score: number): Promise<Distribution | null> {

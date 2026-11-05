@@ -10,7 +10,7 @@ Context for Claude when working on this repo. Read this first.
 - 25-second play clock and 3 downs (guesses) per prompt.
 - The ball starts at midfield. Rarer answers gain more yards. 50 yards is a touchdown; finishing inside the opponent 35 is a field goal; anything else is a punt.
 - Daily mode is called **"The Daily Drive"** (the football version of Krillion's "Daily Dive").
-- Live at https://4thandlong.vercel.app
+- Live at https://4thandlong.io (www and 4thandlong.vercel.app also work; www redirects to the apex)
 
 ## Who you're working with
 
@@ -64,7 +64,8 @@ src/engine/tiers.ts      Tier names, points, yards, colors, emoji; drive constan
 src/engine/schedule.ts   LAUNCH_DATE, time zone, seeded daily prompt schedule
 src/engine/match.ts      Answer matching: normalize, aliases, surnames, typo tolerance
 src/engine/storage.ts    localStorage: in-progress drive, stats, streaks, player id
-src/lib/backend.ts       Supabase client (optional) for submit + score distribution
+src/lib/backend.ts       Supabase client (optional): submit_drive (with ref), log_arrival, score distribution
+src/lib/ref.ts           ?ref= / utm_source capture (first touch), cleanup, stored in dd:ref
 src/lib/sound.ts         Sound effects (Web Audio synth + one crowd recording) + mute toggle (dd:sound)
 public/sounds/           crowd-cheer.mp3, the recorded crowd used in big cheers
 src/lib/fx.ts            Effects bus: fx.confetti / fx.flash / fx.quake (skipped for reduced motion)
@@ -76,7 +77,7 @@ scripts/schedule-lock.json  Frozen prompt ids for every drive already played
 src/App.tsx              Views (home / drive / results), daily vs practice sessions
 src/components/          Drive, Results (share text, histogram), Scoreboard, FieldStrip, HowToPlay, RouteArt
 supabase/schema.sql      Tables + RPC functions. Run once in Supabase SQL Editor.
-scripts/                 validate-data, match-cases, dump-drive, build_team_data.py (+ legends.py) to regenerate team prompts from nflverse data
+scripts/                 validate-data, match-cases, dump-drive, og-image.cjs (link preview), build_team_data.py (+ legends.py) to regenerate team prompts from nflverse data
 index.html               Page title and Open Graph / link preview tags
 ```
 
@@ -126,7 +127,7 @@ prompt('my-id', 'NFL', 'Name a ...', {
 - Day boundaries use `America/Chicago`. Use `todayKey()` rather than `new Date()` math.
 - Matching (`match.ts`): accepts unique surnames ("Mahomes"), returns `ambiguous` when a surname is shared ("Manning"), and allows small typos scaled by length. If you loosen fuzzy matching, run `match-cases.ts` to make sure wrong answers don't start counting.
 - The game must work fully without Supabase. If the env vars are missing, only the "vs. everyone today" chart is hidden. Keep it that way.
-- Supabase tables have RLS on with no policies. The browser talks only to the `security definer` RPCs (`submit_drive`, `score_distribution`, `answer_frequency`). Don't add direct table access from the client. Score/yard limits in the schema (0-700, 0-70) must match `tiers.ts`.
+- Supabase tables (`drives`, `plays`, `arrivals`) have RLS on with no policies. The browser talks only to the `security definer` RPCs (`submit_drive`, `log_arrival`, `score_distribution`, `answer_frequency`). `submit_drive` rejects bad player ids and more than 7 plays, and trims/validates every play field. Don't add direct table access from the client. Score/yard limits in the schema (0-700, 0-70) must match `tiers.ts`.
 - localStorage keys are prefixed `dd:`. Changing the shape of `DriveState` or `Stats` can break saved data for existing players; keep changes backward compatible.
 - `vite.config.ts` uses `base: './'` so assets load on Vercel and in previews. Leave it.
 
@@ -141,7 +142,15 @@ prompt('my-id', 'NFL', 'Name a ...', {
 
 The name is final: **4th & Long** (written "4TH & LONG" on the scoreboard, "4thandlong" in URLs and handles). "The Daily Drive" stays as the mode name. Don't reopen the naming question.
 
-Custom domain: Leo is buying **4thandlong.io**. Until he confirms it's connected in Vercel, keep `SHARE_URL` and `og:url` on `https://4thandlong.vercel.app`, otherwise share links would point at a dead site. Once it's live, update: `SHARE_URL` in `src/config.ts`, `og:url` in `index.html`, the "Live at" line at the top of this file, and leave the vercel.app URL working (Vercel keeps it as an alias).
+Domain: **4thandlong.io** (bought through Vercel, live Nov 5, 2026). The apex is primary; `www` 308-redirects to it, and 4thandlong.vercel.app keeps working. `SHARE_URL`, `og:url`, `og:image` and the canonical link all use https://4thandlong.io.
+
+## Marketing: link preview and ref tracking
+
+- **Link preview:** `public/og.jpg` (1200x630, about 100 KB so WhatsApp/iMessage show it) plus og/twitter tags in `index.html` (`summary_large_image`). Regenerate with `node scripts/og-image.cjs` while `npm run dev` is running; it screenshots the real home page, hides the buttons, and overlays a tier-square row and the URL. Keep it under ~300 KB. Chats cache previews, so a changed image can take a while to show up.
+- **Ref tracking:** links like `https://4thandlong.io/?ref=reddit-texans` (or `utm_source=`). `src/lib/ref.ts` runs before render: saves the first ref a browser ever arrives with (`dd:ref`, cleaned to a-z 0-9 - _, max 32 chars), then strips ref/utm params from the address bar. `logArrival()` sends one `log_arrival` RPC per browser (`dd:ref-sent`), and `submitDrive()` sends `p_ref` with every drive (it retries without `p_ref` if the database hasn't been updated). Share text stays a clean URL; tagless players count as `direct`.
+- **Reading results:** in the Supabase SQL Editor run `select * from ref_report(30);` (visitors, players who finished a drive, drives, and players who came back on 2+ days, per ref). `ref_report` is not granted to anon.
+- Vercel Web Analytics on Hobby doesn't show UTM/ref breakdowns (that's Web Analytics Plus), which is why refs live in Supabase.
+- **Ref naming convention:** `channel-detail`, lowercase with hyphens, e.g. `reddit-texans`, `tiktok`, `ig-bio`, `x`, `gc-fantasy`, `uh`, `creator-<name>`.
 
 ## Feel: sound and effects
 
