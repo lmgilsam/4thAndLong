@@ -71,7 +71,7 @@ public/sounds/           crowd-cheer.mp3, the recorded crowd used in big cheers
 src/lib/install.ts       Home screen app: registers the service worker, catches beforeinstallprompt, works out the install path (prompt / iOS / iOS in-app browser / Android menu)
 src/components/InstallApp.tsx  GET THE APP button (home + results) and the how-to-install popup
 src/sw-template.js       Service worker source; the pwa() plugin in vite.config.ts fills in the file lists and writes dist/sw.js
-public/manifest.webmanifest, public/icons/  App name, colors, icons (regenerate PNGs from icons/icon.svg with scripts/app-icons.sh)
+public/manifest.webmanifest, public/icons/, public/apple-touch-icon.png  App name, colors, icons (regenerate PNGs from icons/icon.svg with scripts/app-icons.sh)
 src/lib/fx.ts            Effects bus: fx.confetti / fx.flash / fx.quake (skipped for reduced motion)
 src/lib/useCountUp.ts    Scoreboard-style number tick-up hook
 src/components/Effects.tsx  Full-screen confetti canvas + flash overlay, mounted once in App
