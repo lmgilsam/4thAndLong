@@ -4,10 +4,12 @@
 //   npm run dev                                          # in another terminal
 //   node scripts/ad/record-ad.cjs                        # The Final Play: frames + sound + video
 //   node scripts/ad/record-ad.cjs --ad turnover          # Turnover on Downs
+//   node scripts/ad/record-ad.cjs --ad film-room         # Film Room #001 (Alabama QBs)
 //   node scripts/ad/record-ad.cjs --audio-only           # reuse the frames, redo the sound (after adding voices)
 //
 // Ads (--ad):  final-play (default)  ad.html, timeline.ts, voices in scripts/ad/voice/
 //              turnover              ad-turnover.html, timeline-turnover.ts, voices in scripts/ad/voice-turnover/
+//              film-room             ad-film-room.html, timeline-film-room.ts, voices in scripts/ad/voice-film-room/
 //
 // Voices: save one take per line in the ad's voice folder, named after the line id
 // in its timeline, e.g. 02-color-brady.wav (.mp3 and .m4a work too). Each take
@@ -31,6 +33,7 @@ const opt = (name, dflt) => { const i = args.indexOf(name); return i >= 0 ? args
 const ADS = {
   'final-play': { page: 'ad.html', voice: 'voice', frames: 'frames' },
   turnover: { page: 'ad-turnover.html', voice: 'voice-turnover', frames: 'frames-turnover' },
+  'film-room': { page: 'ad-film-room.html', voice: 'voice-film-room', frames: 'frames-film-room' },
 }
 const AD = ADS[opt('--ad', 'final-play')]
 if (!AD) throw new Error(`Unknown --ad. Use one of: ${Object.keys(ADS).join(', ')}`)
