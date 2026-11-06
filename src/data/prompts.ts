@@ -3,6 +3,7 @@ import { NFL as T, CFB as C } from './teams'
 import { BATCH_2 } from './prompts-batch2'
 import { BATCH_3 } from './prompts-batch3'
 import { BATCH_4 } from './prompts-batch4'
+import { BATCH_5 } from './prompts-batch5'
 
 // Every prompt lists its accepted answers grouped by seeded rarity tier:
 //   1 Checkdown (everyone says it) -> 5 Hail Mary (almost nobody says it)
@@ -348,6 +349,7 @@ export const BATCHES: PromptDef[][] = [
   BATCH_2,
   liveFrom('2026-11-04', BATCH_3),
   liveFrom('2026-11-06', BATCH_4),
+  liveFrom('2026-11-07', BATCH_5),
 ]
 
 export const PROMPTS: PromptDef[] = BATCHES.flat()
