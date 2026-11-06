@@ -5,3 +5,6 @@ dist
 *.log
 .DS_Store
 __pycache__/
+
+# Ad recordings (scripts/ad/record-ad.cjs)
+ad-out/
