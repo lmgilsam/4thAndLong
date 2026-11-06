@@ -7,9 +7,11 @@ import App from './App.tsx'
 import { captureRef } from './lib/ref'
 import { logArrival } from './lib/backend'
 import { playerId } from './engine/storage'
+import { setupInstall } from './lib/install'
 
 // Read ?ref= before anything renders, then count the visit (best effort, never blocks the game).
 captureRef()
+setupInstall()
 void logArrival(playerId())
 
 createRoot(document.getElementById('root')!).render(

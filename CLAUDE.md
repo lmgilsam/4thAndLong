@@ -68,6 +68,10 @@ src/lib/backend.ts       Supabase client (optional): submit_drive (with ref), lo
 src/lib/ref.ts           ?ref= / utm_source capture (first touch), cleanup, stored in dd:ref
 src/lib/sound.ts         Sound effects (Web Audio synth + one crowd recording) + mute toggle (dd:sound)
 public/sounds/           crowd-cheer.mp3, the recorded crowd used in big cheers
+src/lib/install.ts       Home screen app: registers the service worker, catches beforeinstallprompt, works out the install path (prompt / iOS / iOS in-app browser / Android menu)
+src/components/InstallApp.tsx  GET THE APP button (home + results) and the how-to-install popup
+src/sw-template.js       Service worker source; the pwa() plugin in vite.config.ts fills in the file lists and writes dist/sw.js
+public/manifest.webmanifest, public/icons/  App name, colors, icons (regenerate PNGs from icons/icon.svg with scripts/app-icons.sh)
 src/lib/fx.ts            Effects bus: fx.confetti / fx.flash / fx.quake (skipped for reduced motion)
 src/lib/useCountUp.ts    Scoreboard-style number tick-up hook
 src/components/Effects.tsx  Full-screen confetti canvas + flash overlay, mounted once in App
@@ -156,6 +160,17 @@ Domain: **4thandlong.io** (bought through Vercel, live Nov 5, 2026). The apex is
 - **Reading results:** in the Supabase SQL Editor run `select * from ref_report(30);` (visitors, players who finished a drive, drives, and players who came back on 2+ days, per ref). `ref_report` is not granted to anon.
 - Vercel Web Analytics on Hobby doesn't show UTM/ref breakdowns (that's Web Analytics Plus), which is why refs live in Supabase.
 - **Ref naming convention:** `channel-detail`, lowercase with hyphens, e.g. `reddit-texans`, `tiktok`, `ig-bio`, `x`, `gc-fantasy`, `uh`, `creator-<name>`.
+
+## Home screen app (PWA, added Nov 5, 2026)
+
+- The game installs to the home screen as a full-screen app and works offline after the first visit. No app store.
+- **Service worker** (`src/sw-template.js`, built to `dist/sw.js` by the `pwa()` plugin in `vite.config.ts`, build only, registered only in production from `setupInstall()`): pages are network first with a 3.5s timeout, falling back to the cached `index.html`; `/assets/*` (hashed) cache first; other same-origin files (team JSON, sounds, icons) stale-while-revalidate. It never touches `/api/*`, `/_vercel/*`, other origins (Supabase), or non-GET requests. The precache is this build's JS/CSS, Latin `.woff2` fonts, `index.html`, and `PUBLIC_PRECACHE` in `vite.config.ts`; team answer lists are cached when a drive loads them (Drive prefetches both team prompts at the start). The cache version is a hash of the precache list plus `index.html` and the public precache files, so every deploy installs a fresh cache and deletes the old one. If you add a public file the app needs offline, add it to `PUBLIC_PRECACHE`.
+- New deploys reach installed players on their next launch (navigation is network first, and the new worker calls `skipWaiting`). Prompt batches ship the same way as on the web, no store review.
+- `vercel.json` serves `/sw.js` with `Cache-Control: no-cache` and the manifest as `application/manifest+json`. Don't put the service worker under `/assets/` or rename it: installed players' browsers look for `/sw.js`.
+- **Install button** (`InstallButton`): Chrome/Edge/Samsung (Android, desktop) show the browser's own install dialog via the saved `beforeinstallprompt`; iPhone/iPad Safari get Share → Add to Home Screen steps; iOS in-app browsers (Instagram, TikTok, Facebook, Snapchat) are told to open Safari first; other Android browsers get menu steps. Hidden when already running standalone, and on desktop browsers that can't install. The popup renders through a portal because `.home-actions` animates with a transform, which would trap a fixed-position modal.
+- **iPhone layout:** `viewport-fit=cover` + `black-translucent` status bar, so the stadium runs under the notch. `.stage`, `.corner-btn`, `.sound-btn` and `.modal-backdrop` pad with `env(safe-area-inset-*)` (0 in a normal browser). Keep that on any new fixed or edge-hugging element.
+- Testing: `npm run build && npx vite preview`, then DevTools > Application (Manifest, Service Workers, Cache Storage). Offline: DevTools Network > Offline, reload. Dev server never registers the worker.
+- Not built yet: push notifications ("today's drive is live"), which need VAPID keys, a subscriptions table and a scheduled sender (Supabase cron or Vercel cron). iPhone only allows web push for installed apps.
 
 ## Feel: sound and effects
 

@@ -4,6 +4,7 @@ import { Drive, totals, type Session } from './components/Drive'
 import { Effects } from './components/Effects'
 import { Teams } from './components/Teams'
 import { HowToPlay } from './components/HowToPlay'
+import { InstallButton } from './components/InstallApp'
 import { Results } from './components/Results'
 import { dateForDrive, driveNumber, getPrompt, promptsForDrive, randomPractice, todayKey } from './engine/schedule'
 import {
@@ -185,6 +186,7 @@ function Home({ driveNo, streak, done, inProgress, onStart, onPractice, onHelp }
         <div className="row-btns">
           <button className="btn btn-ghost" onClick={onHelp}>HOW TO PLAY</button>
           <button className="btn btn-ghost" onClick={onPractice}>PRACTICE</button>
+          <InstallButton />
         </div>
       </div>
     </div>
