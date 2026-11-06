@@ -122,7 +122,7 @@ const probeDuration = (f) => Number(execFileSync('ffprobe', ['-v', 'error', '-sh
     const next = lines[i + 1]
     const room = (next ? next.start : duration) - line.start
     const note = len > room ? `  runs ${(len - room).toFixed(2)}s into the next line: trim it or move the line in src/ad/timeline.ts` : ''
-    console.log(`Voice ${line.id}: ${len.toFixed(2)}s at ${line.start}s${note}`)
+    console.log(`Voice ${line.id}: ${len.toFixed(2)}s at ${line.start.toFixed(2)}s${note}`)
     takes.push({ file, start: line.start })
   }
   if (!takes.length) console.log(`No voice takes in ${path.relative(ROOT, VOICE_DIR)}/, recording without voices.`)
@@ -136,7 +136,7 @@ const probeDuration = (f) => Number(execFileSync('ffprobe', ['-v', 'error', '-sh
     const vo = takes.map((tk, i) => {
       const ms = Math.round(tk.start * 1000)
       // Each take is leveled first, so quiet and loud recordings sit the same in the mix.
-      return `[${i + 2}:a]aformat=channel_layouts=stereo,loudnorm=I=-24:TP=-8:LRA=9,aresample=48000,adelay=${ms}|${ms}[v${i}]`
+      return `[${i + 2}:a]aformat=channel_layouts=stereo,loudnorm=I=-25.5:TP=-8:LRA=9,aresample=48000,adelay=${ms}|${ms}[v${i}]`
     })
     const mixIn = takes.map((_, i) => `[v${i}]`).join('')
     graph = [

@@ -1,8 +1,6 @@
 // Timeline for the Final Play ad: scene times, play clock and booth lines.
 
-export const DURATION = 23
-
-// ---------- Timeline (seconds) ----------
+// Scene times are fitted to the voice takes in scripts/ad/voice/ (Typecast, Nov 6, 2026).
 export const T = {
   lightsOn: 0.25,
   hookIn: 0.6,
@@ -14,25 +12,26 @@ export const T = {
   hut: 2.95,
   cardIn: 3.2,
   boothIn: 5.0,
-  bradyPop: 5.6,
-  boothOut: 8.0,
-  typeBrady: 8.25,
-  boothNo: 9.3,
-  boothNoOut: 9.75,
-  deleteBrady: 9.75,
-  typeHoss: 10.6,
-  snap: 11.95,
-  freeze: 12.0,
-  reveal: 13.0,
-  throwSnap: 14.3,
-  release: 14.8,
-  catch: 15.5,
-  endCard: 18.2,
-  fadeOut: 22.4,
+  bradyPop: 6.95, // on "Brady's a checkdown"
+  boothOut: 9.25,
+  typeBrady: 9.5,
+  boothNo: 11.15,
+  boothNoOut: 11.6,
+  deleteBrady: 11.6,
+  typeHoss: 12.45,
+  snap: 13.8,
+  freeze: 13.85,
+  reveal: 14.95,
+  throwSnap: 16.25,
+  release: 16.75,
+  catch: 17.45,
+  endCard: 21.25,
+  fadeOut: 25.7,
 }
+export const DURATION = 26.3
 
 // Rapid play clock: the ad squeezes 25 seconds into about 9.
-const CLOCK_KEYS: [number, number][] = [[3.2, 25], [5.0, 20], [8.0, 10], [9.5, 6], [12.0, 2]]
+const CLOCK_KEYS: [number, number][] = [[T.cardIn, 25], [T.boothIn, 20], [T.boothOut, 10], [T.boothNoOut, 6], [T.snap, 2]]
 export function clockAt(t: number): number {
   if (t <= CLOCK_KEYS[0][0]) return 25
   for (let i = 1; i < CLOCK_KEYS.length; i++) {
@@ -41,6 +40,13 @@ export function clockAt(t: number): number {
     if (t <= t1) return v0 + (v1 - v0) * ((t - t0) / (t1 - t0))
   }
   return 2
+}
+
+/** When the play clock first shows `secs` (for the last-seconds ticks). */
+function clockHits(secs: number): number {
+  let t = T.cardIn
+  while (t < T.snap && Math.ceil(clockAt(t) - 0.001) > secs) t += 0.005
+  return Math.round(t * 1000) / 1000
 }
 
 // Booth lines. Each one shows on screen in the chyron at `start`, and a voice
@@ -60,15 +66,15 @@ export interface Line {
   voiceOnly?: boolean
 }
 export const LINES: Line[] = [
-  { id: '01-pbp-bag', who: 'PBP', text: "Field goal's already in the bag. They want six.", start: 3.3, end: 5.0 },
-  { id: '02-color-brady', who: 'COLOR', text: "Do NOT say Brady. Brady's a checkdown. One yard.", start: 5.15, end: 8.0 },
-  { id: '03-pbp-thinking', who: 'PBP', text: "Oh, he's thinking about it...", start: 8.3, end: 9.3 },
-  { id: '04-color-no', who: 'COLOR', text: 'NO!', start: 9.3, end: 10.4, big: true },
-  { id: '05-pbp-hostetler', who: 'PBP', text: '...Hostetler?', start: 12.1, end: 13.0, cps: 14 },
-  { id: '06-pbp-hail-mary', who: 'PBP', text: 'HAIL MARY!', start: 13.0, end: 15.5, big: true },
-  { id: '07-pbp-touchdown', who: 'PBP', text: 'TOUCHDOWN!', start: 15.5, end: 16.15, big: true },
-  { id: '08-color-xxv', who: 'COLOR', text: 'Super Bowl XXV! WHO SAYS HOSTETLER?!', start: 16.15, end: 18.2, cps: 40, say: 'Super Bowl twenty-five! WHO SAYS HOSTETLER?!' },
-  { id: '09-pbp-tag', who: 'PBP', text: '4th & Long. Play free at 4thandlong.io', start: 19.6, end: 22.4, say: 'Fourth and Long. Play free at fourth-and-long dot I-O.', voiceOnly: true },
+  { id: '01-pbp-bag', who: 'PBP', text: "Field goal's already in the bag. They want six.", start: 3.2, end: 5.65, cps: 22 },
+  { id: '02-color-brady', who: 'COLOR', text: "Do NOT say Brady. Brady's a checkdown. One yard.", start: 5.65, end: T.boothOut, cps: 16 },
+  { id: '03-pbp-thinking', who: 'PBP', text: "Oh, he's thinking about it...", start: 9.55, end: T.boothNo, cps: 20 },
+  { id: '04-color-no', who: 'COLOR', text: 'NO!', start: T.boothNo, end: T.boothNo + 1.15, big: true },
+  { id: '05-pbp-hostetler', who: 'PBP', text: '...Hostetler?', start: T.freeze + 0.03, end: T.reveal, cps: 13 },
+  { id: '06-pbp-hail-mary', who: 'PBP', text: 'HAIL MARY!', start: T.reveal, end: T.catch, big: true },
+  { id: '07-pbp-touchdown', who: 'PBP', text: 'TOUCHDOWN!', start: T.catch, end: T.catch + 1.0, big: true },
+  { id: '08-color-xxv', who: 'COLOR', text: 'Super Bowl XXV! WHO SAYS HOSTETLER?!', start: T.catch + 1.0, end: T.endCard, say: 'Super Bowl twenty-five! WHO SAYS HOSTETLER?!' },
+  { id: '09-pbp-tag', who: 'PBP', text: '4th & Long. Play free at 4thandlong.io', start: T.endCard + 0.4, end: T.fadeOut, say: 'Fourth and Long. Play free at fourth-and-long dot I-O.', voiceOnly: true },
 ]
 
 // Sound effects, played with the game's own sound code (src/lib/sound.ts) when
@@ -84,17 +90,17 @@ export const SFX: Sfx[] = [
   [T.boothNo, 'miss'],
   ...typing(T.deleteBrady, 6, 20),
   ...typing(T.typeHoss, 14, 13),
-  [10.125, 'tick', 5], [10.75, 'tick', 4], [11.375, 'tick', 3], // when the clock shows 5, 4, 3
+  [clockHits(5), 'tick', 5], [clockHits(4), 'tick', 4], [clockHits(3), 'tick', 3],
   [T.snap, 'cadence', 'HUT'],
   [T.reveal, 'hit', 5], // Hail Mary: chimes, the real crowd recording, air horn
   [T.throwSnap, 'cadence', 'HUT!'], [T.throwSnap + 0.02, 'whistle'],
   [T.catch, 'touchdown'],
   [T.endCard + 0.1, 'cadence', 'HUT!'],
-  [21.05, 'click'],
+  [T.endCard + 2.85, 'click'],
 ]
 
 // Crowd murmur under everything: [time, level]. Dead silent during the freeze.
 export const MURMUR: [number, number][] = [
-  [0, 0], [0.3, 0], [1.2, 0.07], [9.6, 0.07], [11.9, 0.11], [T.freeze + 0.02, 0],
-  [T.reveal - 0.05, 0], [T.reveal + 0.2, 0.13], [21.6, 0.13], [22.9, 0],
+  [0, 0], [0.3, 0], [1.2, 0.07], [T.boothNo + 0.3, 0.07], [T.snap - 0.05, 0.11], [T.freeze + 0.02, 0],
+  [T.reveal - 0.05, 0], [T.reveal + 0.2, 0.13], [T.fadeOut - 0.8, 0.13], [DURATION - 0.1, 0],
 ]

@@ -203,7 +203,7 @@ function bodies(t: number): Body[] {
   const ol: [number, number][] = [[10.7, 0.3], [10.7, 0.4], [10.7, 0.5], [10.7, 0.6], [10.7, 0.7], [10.8, 0.8]]
   ol.forEach(([y, l], i) => O(`ol${i}`, snapped && !done ? y + 0.4 : y, l, done ? 'cheer' : snapped ? 'block' : 'stance', i + 1, done ? hop(i) : 0))
   // QB in the shotgun
-  const qbPose: Pose = done ? 'cheer' : !snapped ? 'ready' : t < 14.55 ? 'hold' : t < T.release ? 'windup' : 'follow'
+  const qbPose: Pose = done ? 'cheer' : !snapped ? 'ready' : t < T.throwSnap + 0.25 ? 'hold' : t < T.release ? 'windup' : 'follow'
   O('qb', snapped ? 15.6 : 15, 0.5, qbPose, 0, done ? hop(9) : 0)
   O('rb', 15, 0.62, done ? 'cheer' : snapped ? 'block' : 'ready', 3, done ? hop(4) : 0)
   // Receivers
@@ -587,7 +587,7 @@ export function FinalPlay({ t }: { t: number }) {
   const flashW = within(t, T.catch, T.catch + 0.3) ? 0.6 * (1 - prog(t, T.catch, T.catch + 0.3))
     : within(t, T.endCard, T.endCard + 0.3) ? 0.5 * (1 - prog(t, T.endCard, T.endCard + 0.3)) : 0
   const clock = clockAt(t)
-  const urgent = within(t, 9.8, T.freeze) && clock <= 5
+  const urgent = within(t, T.boothNoOut, T.freeze) && clock <= 5
   const beat = (t % 1)
   const vignette = urgent ? (beat < 0.15 ? 0.35 + beat / 0.15 * 0.65 : beat < 0.3 ? 1 - (beat - 0.15) / 0.15 * 0.5 : beat < 0.45 ? 0.5 + (beat - 0.3) / 0.15 * 0.4 : 0.9 - (beat - 0.45) / 0.55 * 0.55) : 0
   const fade = prog(t, T.fadeOut, DURATION)
