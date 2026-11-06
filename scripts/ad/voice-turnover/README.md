@@ -6,18 +6,18 @@ Drop one take per booth line in this folder, named after the line id, then run
 to remix the sound onto frames you already recorded. `.wav`, `.mp3` and `.m4a` all work.
 Missing takes are skipped.
 
-| File | Voice | Starts at | Read it as |
+| File | Voice | Starts at | Line |
 |---|---|---|---|
-| `01-pbp-easy` | Play-by-play | 3.8s | First play of the day. Easiest question on the board. |
-| `02-color-free` | Color | 6.75s | Free yards. He's got this. |
-| `03-color-allen` | Color | 8.4s | Josh Allen's never even BEEN to one! |
-| `04-pbp-lamar` | Play-by-play | 10.6s | Lamar Jackson? Two MVPs! |
-| `05-color-rings` | Color | 12.3s | MVPs aren't RINGS! |
-| `06-pbp-dont` | Play-by-play | 13.65s | Third down. Don't do it... |
-| `07-color-dak` | Color | 16.45s | DAK?! |
-| `08-pbp-turnover` | Play-by-play | 17.35s | TURNOVER ON DOWNS! |
-| `09-color-zero` | Color | 19.5s | Zero Super Bowl starts between all three of 'em! |
-| `10-pbp-tag` | Play-by-play | 22.45s | Fourth and Long. You can do better. Play free at fourth-and-long dot I-O. |
+| `01-pbp-easy` | Play-by-play | 3.85s | First play of the day. Easiest question on the board. (1.1x) |
+| `02-color-free` | Color | 6.75s | Free yards, he's got this. |
+| `03-color-allen` | Color | 9.3s | Josh Allen? He's never even been to one! (1.1x) |
+| `04-pbp-lamar` | Play-by-play | 13.1s | Lamar Jackson? Two MVPs! (1.1x) |
+| `05-color-rings` | Color | 16.9s | MVPs aren't rings! |
+| `06-pbp-dont` | Play-by-play | 19.45s | Third down. Don't do it... |
+| `07-color-dak` | Color | 22.05s | Dak? |
+| `08-pbp-turnover` | Play-by-play | 22.8s | Turnover! |
+| `09-color-what` | Color | 27.05s | What should he have said? (voice only, over the end card question) |
 
-The start times are first guesses for the text-only cut. When the takes arrive,
-the scene times in `src/ad/timeline-turnover.ts` get refitted to the real line lengths.
+These were cut from one Typecast file (Second_AD_audio.mp3, Nov 6, 2026) at its
+pauses, with silence trimmed. Scene times in `src/ad/timeline-turnover.ts` are fitted to them,
+so new takes of different lengths need the times refitted.

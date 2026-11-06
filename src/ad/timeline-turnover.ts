@@ -1,8 +1,8 @@
 // Timeline for the "Turnover on Downs" ad: scene times, play clock, booth lines
 // and sound cues. Same model as timeline.ts (The Final Play).
 //
-// Scene times are first guesses for text-only preview. When the Typecast takes
-// land in scripts/ad/voice-turnover/, refit the times to the real line lengths.
+// Scene times are fitted to Leo's Typecast takes in scripts/ad/voice-turnover/
+// (Nov 6, 2026; lines 01, 03 and 04 sped up 1.1x). New takes need a refit.
 
 import type { Line } from './timeline'
 
@@ -18,33 +18,34 @@ export const T = {
   set: 3.1,
   hut: 3.5,
   cardIn: 3.75,
-  // 1st down: Josh Allen
-  typeAllen: 6.9,
-  snap1: 7.9,
-  boothA: 8.35, // "Josh Allen's never even BEEN to one!"
-  boothAOut: 10.5,
-  // 2nd down: Lamar Jackson
-  typeLamar: 10.75,
-  snap2: 11.95,
-  boothB: 12.25, // "MVPs aren't RINGS!"
-  boothBOut: 13.55,
+  // 1st down: Josh Allen. The thud lands right after "he's got this".
+  typeAllen: 7.45,
+  snap1: 9.0,
+  boothA: 9.25, // "Josh Allen? He's never even been to one!"
+  boothAOut: 13.05,
+  // 2nd down: Lamar Jackson. Snapped in the pause after "Lamar Jackson?"
+  typeLamar: 13.2,
+  snap2: 14.62,
+  boothB: 16.85, // "MVPs aren't rings!"
+  boothBOut: 19.4,
   // 3rd down: Dak Prescott
-  typeDak: 14.0,
-  freeze: 15.65,
-  snap3: 16.35,
+  typeDak: 19.6,
+  freeze: 21.25,
+  snap3: 21.95,
   // Turnover
-  revealOut: 18.05,
-  celebrate: 18.05, // defense celebrates on the field
-  boothC: 19.45, // stat pop-up and "Zero Super Bowl starts..."
-  statPop: 19.7,
-  endCard: 22.05,
-  fadeOut: 26.2,
+  revealOut: 23.85,
+  celebrate: 23.85, // defense celebrates on the field
+  boothC: 24.95, // booth cracks up, stat pop-up
+  statPop: 25.05,
+  endCard: 26.15,
+  endQuestion: 27.05, // "What should he have said?" (voice and text together)
+  fadeOut: 30.1,
 }
-export const DURATION = 26.8
+export const DURATION = 30.7
 
 // Rapid play clock: 25 seconds squeezed into about 12. It holds still during the freeze.
 const CLOCK_KEYS: [number, number][] = [
-  [T.cardIn, 25], [T.boothA, 19], [T.boothAOut, 15], [T.boothB, 11], [T.boothBOut, 7], [T.freeze, 2], [T.snap3, 2],
+  [T.cardIn, 25], [T.boothA, 19], [T.boothAOut, 15], [T.boothB, 10], [T.boothBOut, 7], [T.freeze, 2], [T.snap3, 2],
 ]
 export function clockAt(t: number): number {
   if (t <= CLOCK_KEYS[0][0]) return 25
@@ -76,16 +77,15 @@ export const GUESSES = [
 // scripts/ad/voice-turnover/<id>.wav (or .mp3 / .m4a) plays at the same moment
 // when the ad is recorded. `say` is how to read it when it differs from the text.
 export const LINES: Line[] = [
-  { id: '01-pbp-easy', who: 'PBP', text: 'First play of the day. Easiest question on the board.', start: 3.8, end: 6.75, cps: 22 },
-  { id: '02-color-free', who: 'COLOR', text: "Free yards. He's got this.", start: 6.75, end: T.boothA, cps: 18 },
-  { id: '03-color-allen', who: 'COLOR', text: "Josh Allen's never even BEEN to one!", start: T.boothA + 0.05, end: T.boothAOut, cps: 22 },
-  { id: '04-pbp-lamar', who: 'PBP', text: 'Lamar Jackson? Two MVPs!', start: 10.6, end: T.boothB, cps: 18 },
-  { id: '05-color-rings', who: 'COLOR', text: "MVPs aren't RINGS!", start: T.boothB + 0.05, end: T.boothBOut, cps: 20 },
-  { id: '06-pbp-dont', who: 'PBP', text: "Third down. Don't do it...", start: 13.65, end: T.freeze, cps: 14 },
-  { id: '07-color-dak', who: 'COLOR', text: 'DAK?!', start: T.snap3 + 0.1, end: 17.35, big: true },
-  { id: '08-pbp-turnover', who: 'PBP', text: 'TURNOVER ON DOWNS!', start: 17.35, end: T.boothC, big: true },
-  { id: '09-color-zero', who: 'COLOR', text: "Zero Super Bowl starts between all three of 'em!", start: T.boothC + 0.05, end: T.endCard, cps: 22 },
-  { id: '10-pbp-tag', who: 'PBP', text: '4th & Long. You can do better. Play free at 4thandlong.io', start: T.endCard + 0.4, end: T.fadeOut, say: 'Fourth and Long. You can do better. Play free at fourth-and-long dot I-O.', voiceOnly: true },
+  { id: '01-pbp-easy', who: 'PBP', text: 'First play of the day. Easiest question on the board.', start: 3.85, end: 6.75, cps: 20 },
+  { id: '02-color-free', who: 'COLOR', text: "Free yards. He's got this.", start: 6.75, end: T.boothA, cps: 13 },
+  { id: '03-color-allen', who: 'COLOR', text: "Josh Allen? He's never even BEEN to one!", start: 9.3, end: T.boothAOut, cps: 12 },
+  { id: '04-pbp-lamar', who: 'PBP', text: 'Lamar Jackson? Two MVPs!', start: 13.1, end: T.boothB, cps: 9 },
+  { id: '05-color-rings', who: 'COLOR', text: "MVPs aren't RINGS!", start: 16.9, end: T.boothBOut, cps: 9 },
+  { id: '06-pbp-dont', who: 'PBP', text: "Third down. Don't do it...", start: 19.45, end: T.freeze, cps: 16 },
+  { id: '07-color-dak', who: 'COLOR', text: 'DAK?!', start: 22.05, end: 22.75, big: true },
+  { id: '08-pbp-turnover', who: 'PBP', text: 'TURNOVER!', start: 22.8, end: T.boothC, big: true },
+  { id: '09-color-what', who: 'COLOR', text: 'What should he have said?', start: T.endQuestion, end: T.fadeOut, voiceOnly: true },
 ]
 
 // Sound effects, played with the game's own sound code (src/lib/sound.ts) when

@@ -2,7 +2,7 @@
 // Play 1 of 7, ball at midfield, "Name a quarterback who started and won a
 // Super Bowl." The player confidently types three of today's star QBs who have
 // never started one (Josh Allen, Lamar Jackson, Dak Prescott) and burns all
-// three downs. The booth falls apart; the end card asks who he should have said.
+// three downs. The booth falls apart; the end card asks what he should have said.
 //
 // Same rules as FinalPlay.tsx: everything on screen is computed from t
 // (seconds), with no CSS animations or timers, so the recorder can step frames.
@@ -395,7 +395,7 @@ function StatPop({ t }: { t: number }) {
       <div className="tod-stat-head">SUPER BOWL STARTS</div>
       <div className="tod-stat-row">
         {names.map((n, i) => {
-          const q = easeBack(prog(t, T.statPop + 0.35 + i * 0.28, T.statPop + 0.6 + i * 0.28))
+          const q = easeBack(prog(t, T.statPop + 0.25 + i * 0.2, T.statPop + 0.45 + i * 0.2))
           return (
             <div key={n} className="tod-stat-cell" style={{ opacity: clamp(q * 1.5) }}>
               <span className="tod-stat-name">{n}</span>
@@ -452,7 +452,7 @@ function EndCard({ t }: { t: number }) {
   if (t < T.endCard) return null
   const s = (a: number, d = 0.25) => prog(t, T.endCard + a, T.endCard + a + d)
   const title = easeBack(s(0.1, 0.35))
-  const q = easeBack(s(1.3, 0.35))
+  const q = easeBack(prog(t, T.endQuestion, T.endQuestion + 0.35))
   return (
     <div className="ad-end">
       <h1 className="game-title ad-end-title" style={{ transform: `scale(${1.6 - 0.6 * title})`, opacity: clamp(title * 2) }}>
@@ -465,7 +465,7 @@ function EndCard({ t }: { t: number }) {
           return <span key={id} style={{ background: TIERS[id].color, boxShadow: `0 0 14px ${TIERS[id].color}`, transform: `scale(${sq})`, opacity: clamp(sq) }} />
         })}
       </div>
-      <p className="tod-end-q" style={{ opacity: clamp(q * 2), transform: `scale(${0.7 + 0.3 * q})` }}>Who should he<br />have said?</p>
+      <p className="tod-end-q" style={{ opacity: clamp(q * 2), transform: `scale(${0.7 + 0.3 * q})` }}>What should he<br />have said?</p>
       <p className="ad-end-rule" style={{ opacity: s(2.45) }}>Rarer answers gain more yards</p>
       <div className="btn btn-hero ad-end-cta" style={{ opacity: s(2.85), transform: `translateY(${(1 - easeOut(s(2.85))) * 12}px)` }}>
         PLAY FREE ▸ 4THANDLONG.IO
