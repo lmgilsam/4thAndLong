@@ -49,7 +49,11 @@ function InstallHelp({ mode, onClose }: { mode: InstallMode; onClose: () => void
           </ol>
         ) : mode === 'ios' ? (
           <ol className="htp-steps">
-            <li>Tap <ShareIcon /> <b>Share</b> in the toolbar. On newer iPhones, tap <b>•••</b> first.</li>
+            {/CriOS/.test(navigator.userAgent)
+              ? <li>Tap <ShareIcon /> <b>Share</b> at the right end of the address bar.</li>
+              : /FxiOS|EdgiOS/.test(navigator.userAgent)
+                ? <li>Open the browser menu and tap <ShareIcon /> <b>Share</b>. No Add to Home Screen there? Open this page in Safari.</li>
+                : <li>Tap <ShareIcon /> <b>Share</b> in the toolbar. On newer iPhones, tap <b>•••</b> first.</li>}
             <li>Scroll down and tap <b>Add to Home Screen</b>.</li>
             <li>Tap <b>Add</b>.</li>
           </ol>
