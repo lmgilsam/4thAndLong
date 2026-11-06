@@ -156,3 +156,29 @@ html, body { margin: 0; background: #000; overflow: hidden; }
 .ad-end-lines p { font-family: var(--display); font-weight: 900; text-transform: uppercase; font-size: 40px; line-height: 1.02; color: var(--chalk); text-shadow: 0 3px 0 #0f3a20, 0 10px 24px rgba(0, 0, 0, 0.7); }
 .ad-end-rule { margin-top: 18px; font-family: var(--cond); font-weight: 700; font-size: 20px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--amber); }
 .ad-end-cta { width: auto; margin-top: 20px; font-size: 21px; padding: 16px 24px; letter-spacing: 0.12em; }
+
+/* ---------- Turnover on Downs (TurnoverOnDowns.tsx) ---------- */
+.tod-hook-easy {
+  margin-top: 14px; font-family: var(--display); font-weight: 900; text-transform: uppercase; font-size: 52px; line-height: 1;
+  color: var(--amber); text-shadow: var(--led-glow), 0 4px 0 #3b2a06, 0 14px 30px rgba(0, 0, 0, 0.7);
+}
+.tod-card { top: 190px; }
+.tod-prompt { font-size: 33px; }
+.tod-notice { font-size: 19px; font-weight: 700; margin-top: 8px; min-height: 0; }
+.tod-chyron { top: 532px; }
+.tod-stat { top: 8px; flex-direction: column; gap: 4px; padding: 7px 20px 8px; border-color: #8b938e; box-shadow: 0 0 30px rgba(139, 147, 142, 0.3), 0 12px 30px rgba(0, 0, 0, 0.6); }
+.tod-stat-head { font-family: var(--cond); font-weight: 700; font-size: 16px; letter-spacing: 0.2em; color: #c9d1cc; }
+.tod-stat-row { display: flex; gap: 22px; }
+.tod-stat-cell { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.tod-stat-name { font-family: var(--display); font-weight: 900; font-size: 22px; line-height: 1; color: var(--chalk); }
+.tod-stat-num { display: inline-block; font-size: 32px; color: #ff6b5e; text-shadow: 0 0 10px rgba(255, 80, 60, 0.7), 0 2px 0 #000; }
+.tod-reveal { top: 192px; display: flex; flex-direction: column; align-items: center; padding-top: 12px; }
+.tod-stamp-sq { display: block; width: 52px; height: 52px; border-radius: 6px; background: #3a3f3c; border: 3px solid #8b938e; box-shadow: 0 0 24px rgba(0, 0, 0, 0.8); margin-bottom: 10px; }
+.tod-reveal-title { font-size: 70px; margin: 0; line-height: 0.92; color: #e9ece9; text-shadow: 0 5px 0 #000, 0 0 30px rgba(255, 59, 48, 0.35); }
+.tod-reveal .reveal-answer { font-size: 28px; margin-top: 6px; text-decoration: line-through; text-decoration-color: #ff6b5e; }
+.tod-reveal .reveal-gain { font-size: 24px; margin-top: 2px; }
+.tod-reveal .reveal-blurb { margin-top: 2px; }
+.tod-end-q {
+  margin-top: 28px; font-family: var(--display); font-weight: 900; text-transform: uppercase; font-size: 50px; line-height: 0.98;
+  color: var(--chalk); text-shadow: 0 3px 0 #0f3a20, 0 10px 24px rgba(0, 0, 0, 0.7);
+}

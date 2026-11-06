@@ -1,16 +1,20 @@
-// Records the "Final Play" ad (ad.html, src/ad/) to a 1080x1920 MP4, with the
-// game's own sound effects and, if you have them, voice takes for the booth.
+// Records an ad (src/ad/) to a 1080x1920 MP4, with the game's own sound effects
+// and, if you have them, voice takes for the booth.
 //
-//   npm run dev                                   # in another terminal
-//   node scripts/ad/record-ad.cjs                 # frames + sound + video
-//   node scripts/ad/record-ad.cjs --audio-only    # reuse the frames, redo the sound (after adding voices)
+//   npm run dev                                          # in another terminal
+//   node scripts/ad/record-ad.cjs                        # The Final Play: frames + sound + video
+//   node scripts/ad/record-ad.cjs --ad turnover          # Turnover on Downs
+//   node scripts/ad/record-ad.cjs --audio-only           # reuse the frames, redo the sound (after adding voices)
 //
-// Voices: save one take per line in scripts/ad/voice/ named after the line id in
-// src/ad/timeline.ts, e.g. 02-color-brady.wav (.mp3 and .m4a work too). Each take
+// Ads (--ad):  final-play (default)  ad.html, timeline.ts, voices in scripts/ad/voice/
+//              turnover              ad-turnover.html, timeline-turnover.ts, voices in scripts/ad/voice-turnover/
+//
+// Voices: save one take per line in the ad's voice folder, named after the line id
+// in its timeline, e.g. 02-color-brady.wav (.mp3 and .m4a work too). Each take
 // starts at its line's start time. Missing takes are skipped, so you can add them
 // one at a time. The crowd and effects duck under the voices automatically.
 //
-// Output: ad-out/4thandlong-final-play.mp4 (or -voiced.mp4 when any take is found).
+// Output: ad-out/4thandlong-<ad>.mp4 (or -voiced.mp4 when any take is found).
 // Needs Playwright (not a project dependency): npm i -D playwright && npx playwright install chromium
 // Needs ffmpeg and ffprobe on your PATH. CHROME_PATH=/path/to/chrome uses a system Chrome instead.
 
@@ -24,11 +28,18 @@ const args = process.argv.slice(2)
 const flag = (name) => args.includes(name)
 const opt = (name, dflt) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : dflt }
 
+const ADS = {
+  'final-play': { page: 'ad.html', voice: 'voice', frames: 'frames' },
+  turnover: { page: 'ad-turnover.html', voice: 'voice-turnover', frames: 'frames-turnover' },
+}
+const AD = ADS[opt('--ad', 'final-play')]
+if (!AD) throw new Error(`Unknown --ad. Use one of: ${Object.keys(ADS).join(', ')}`)
+
 const ROOT = path.join(__dirname, '../..')
 const OUT = path.join(ROOT, opt('--out', 'ad-out'))
-const FRAMES = path.join(OUT, 'frames')
-const VOICE_DIR = path.join(__dirname, 'voice')
-const URL = opt('--url', 'http://localhost:5173/ad.html') + '?capture'
+const FRAMES = path.join(OUT, AD.frames)
+const VOICE_DIR = path.join(__dirname, AD.voice)
+const URL = opt('--url', `http://localhost:5173/${AD.page}`) + '?capture'
 const FPS = Number(opt('--fps', '30'))
 const SCALE = 2.5 // 432x768 CSS px -> 1080x1920
 
@@ -43,7 +54,7 @@ const probeDuration = (f) => Number(execFileSync('ffprobe', ['-v', 'error', '-sh
   await page.goto(URL)
   await page.waitForFunction(() => window.__adReady === true, null, { timeout: 30000 })
   await page.waitForTimeout(500)
-  const { duration, lines } = await page.evaluate(() => ({ duration: window.__adDuration, lines: window.__adLines }))
+  const { name, duration, lines } = await page.evaluate(() => ({ name: window.__adName, duration: window.__adDuration, lines: window.__adLines }))
   const total = Math.round(duration * FPS)
 
   // 1. Frames
@@ -121,7 +132,7 @@ const probeDuration = (f) => Number(execFileSync('ffprobe', ['-v', 'error', '-sh
     const len = probeDuration(file)
     const next = lines[i + 1]
     const room = (next ? next.start : duration) - line.start
-    const note = len > room ? `  runs ${(len - room).toFixed(2)}s into the next line: trim it or move the line in src/ad/timeline.ts` : ''
+    const note = len > room ? `  runs ${(len - room).toFixed(2)}s into the next line: trim it or move the line in the ad's timeline` : ''
     console.log(`Voice ${line.id}: ${len.toFixed(2)}s at ${line.start.toFixed(2)}s${note}`)
     takes.push({ file, start: line.start })
   }
@@ -149,7 +160,7 @@ const probeDuration = (f) => Number(execFileSync('ffprobe', ['-v', 'error', '-sh
   } else {
     graph = '[1:a]volume=11.5dB,alimiter=limit=0.82:attack=3:release=60:level=false[a]'
   }
-  const outFile = path.join(OUT, takes.length ? '4thandlong-final-play-voiced.mp4' : '4thandlong-final-play.mp4')
+  const outFile = path.join(OUT, `4thandlong-${name}${takes.length ? '-voiced' : ''}.mp4`)
   ff([...inputs, '-filter_complex', graph, '-map', '0:v', '-map', '[a]',
     '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-pix_fmt', 'yuv420p', '-r', String(FPS),
     '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-shortest', outFile])
