@@ -33,6 +33,9 @@
 html, body, #root { margin: 0; min-height: 100%; }
 body { min-height: 100dvh; overflow-x: hidden; }
 button { font: inherit; color: inherit; cursor: pointer; }
+button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+/* Installed app: no rubber-band pull at the edges. */
+@media (display-mode: standalone) { body { overscroll-behavior: none; } }
 h1, h2, h3, p { margin: 0; }
 
 /* ---------- Stadium backdrop ---------- */
@@ -103,7 +106,10 @@ h1, h2, h3, p { margin: 0; }
 .app { position: relative; min-height: 100dvh; }
 .stage {
   position: relative; z-index: 1; margin: 0 auto; width: 100%; max-width: 640px;
-  min-height: 100dvh; padding: 20px 16px 40px; display: flex; flex-direction: column;
+  min-height: 100dvh; display: flex; flex-direction: column;
+  /* env() insets keep content clear of the notch and home bar when installed; 0 in a normal browser. */
+  padding: calc(20px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right))
+    calc(40px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
 }
 
 /* ---------- Shared bits ---------- */
@@ -139,7 +145,7 @@ h1, h2, h3, p { margin: 0; }
 .row-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 
 .corner-btn {
-  position: fixed; top: 10px; left: 10px; z-index: 5; background: rgba(5, 10, 7, 0.75); border: 1px solid var(--line);
+  position: fixed; top: calc(10px + env(safe-area-inset-top)); left: calc(10px + env(safe-area-inset-left)); z-index: 5; background: rgba(5, 10, 7, 0.75); border: 1px solid var(--line);
   color: var(--muted); font-family: var(--cond); font-weight: 700; letter-spacing: 0.16em; font-size: 12px;
   padding: 6px 10px; border-radius: 3px;
 }
@@ -355,7 +361,7 @@ h1, h2, h3, p { margin: 0; }
 .next-drive .row-btns { margin-top: 12px; }
 
 /* ---------- Modal ---------- */
-.modal-backdrop { position: fixed; inset: 0; z-index: 10; background: rgba(2, 5, 3, 0.8); display: flex; align-items: center; justify-content: center; padding: 16px; animation: fade 200ms ease; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 10; background: rgba(2, 5, 3, 0.8); display: flex; align-items: center; justify-content: center; padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); animation: fade 200ms ease; }
 @keyframes fade { from { opacity: 0; } }
 .modal {
   width: 100%; max-width: 460px; max-height: 90dvh; overflow: auto; background: var(--panel-solid);
@@ -365,6 +371,9 @@ h1, h2, h3, p { margin: 0; }
 .modal h2 { font-family: var(--display); font-weight: 900; font-size: 38px; color: var(--amber); letter-spacing: 0.02em; }
 .htp-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 9px; font-size: 15px; line-height: 1.4; color: #cfd8d2; }
 .htp-steps strong { color: var(--chalk); }
+.htp-steps b { color: var(--chalk); font-weight: 700; }
+.install-modal { text-align: left; }
+.inline-icon { width: 1.1em; height: 1.1em; vertical-align: -0.2em; color: #4fa3ff; }
 .tier-table { width: 100%; border-collapse: collapse; font-family: var(--cond); font-weight: 700; font-size: 16px; letter-spacing: 0.04em; }
 .tier-table td { padding: 7px 4px; border-top: 1px solid var(--line); }
 .tier-table td:not(:first-child) { text-align: right; color: var(--muted); font-family: var(--led); font-size: 15px; }
@@ -373,7 +382,7 @@ h1, h2, h3, p { margin: 0; }
 .tier-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 10px; vertical-align: 1px; }
 
 @media (min-width: 700px) {
-  .stage { padding-top: 32px; }
+  .stage { padding-top: calc(32px + env(safe-area-inset-top)); }
   .play-card { padding: 30px 30px 22px; }
 }
 
@@ -426,7 +435,7 @@ h1, h2, h3, p { margin: 0; }
 @keyframes shine { 0% { left: -40%; } 28%, 100% { left: 130%; } }
 
 /* Sound toggle */
-.sound-btn { left: auto; right: 10px; display: flex; align-items: center; gap: 5px; }
+.sound-btn { left: auto; right: calc(10px + env(safe-area-inset-right)); display: flex; align-items: center; gap: 5px; }
 .sound-btn svg { width: 16px; height: 16px; }
 .sound-btn.off { color: var(--dim); }
 

@@ -11,6 +11,7 @@ import { fx } from '../lib/fx'
 import { sound } from '../lib/sound'
 import { useCountUp } from '../lib/useCountUp'
 import { totals } from './Drive'
+import { InstallButton } from './InstallApp'
 
 function useCountdown() {
   const [ms, setMs] = useState(() => msUntilNextDrive())
@@ -224,6 +225,7 @@ export function Results({ state, prompts, label, stats, mode, celebrate = false,
         <div className="row-btns">
           <button className="btn btn-ghost" onClick={onPractice}>PRACTICE DRIVE</button>
           <button className="btn btn-ghost" onClick={onHome}>HOME</button>
+          <InstallButton />
         </div>
       </section>
     </div>
