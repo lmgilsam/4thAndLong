@@ -1,5 +1,7 @@
 # Builds the app icons and tab icon from Leo's football art (black background).
+# Home screen icons use the field badge from brand_icon.py; the tab icons stay the plain ball so it reads at 16-32px.
 import sys
+from brand_icon import render
 from PIL import Image, ImageDraw, ImageFilter
 src, out = sys.argv[1], sys.argv[2]
 im = Image.open(src).convert('RGB')
@@ -22,9 +24,9 @@ def save(img, size, name, rounded=False):
         s = s.convert('RGBA'); s.putalpha(m.resize((size, size), Image.LANCZOS))
     s.save(f'{out}/{name}', optimize=True)
 
-app = square(1420)        # ball fills ~78% of the icon (iPhone, Android "any")
-safe = square(1760)       # ball inside the 80% circle Android may crop to (maskable)
-tab = square(1180)        # tighter, so the ball reads at 16-32px in a browser tab
+app = render(src)                 # field badge: "4TH &", ball, "LONG" (iPhone, Android "any")
+safe = render(src, content=0.78)  # same badge shrunk inside the 80% circle Android may crop to (maskable)
+tab = square(1180)                # plain ball, tight, so it reads at 16-32px in a browser tab
 save(app, 512, 'icons/icon-512.png'); save(app, 192, 'icons/icon-192.png'); save(app, 180, 'apple-touch-icon.png')
 save(safe, 512, 'icons/icon-maskable-512.png')
 save(tab, 64, 'favicon-64.png', rounded=True); save(tab, 32, 'favicon-32.png', rounded=True)
