@@ -55,6 +55,7 @@ src/data/prompts.ts      THE ANSWER DATABASE: BATCH_1 (31 prompts) + BATCHES lis
 src/data/prompts-batch2.ts  BATCH_2 (30 prompts)
 src/data/prompts-batch3.ts  BATCH_3 (26 prompts, live from 2026-11-04): league leaders 1980+, HOF RB/LB/OL, draft classes, misc
 src/data/prompts-batch4.ts  BATCH_4 (30 prompts, live from 2026-11-06, first played Nov 18): HOF TE/DB/DL/coach/HBCU, Super Bowl subsets, AFL/pre-SB champs, former team names, other leagues, mascots, brothers, CFP, Pac-12 exodus, Wildcats/Bulldogs, 100k stadiums, pass rush moves, QB classes 1999/2012/2020
+src/data/prompts-batch5.ts  BATCH_5 (1 prompt, live from 2026-11-07, first played Nov 24): bama-qb (Alabama QBs who made the NFL), built for the Film Room #001 ad
 src/data/team-prompts.ts 96 team prompts (QB/RB/defense x 32 teams), lazy-loaded via ensureAnswers()
 src/data/team-index.json Generated list of team prompts (do not hand-edit)
 public/teams/*.json      Generated team answer lists (do not hand-edit)
@@ -129,7 +130,7 @@ prompt('my-id', 'NFL', 'Name a ...', {
 - `#drive-N` only replays drives up to today, and `/#practice` only draws general prompts already live, so future prompts never leak.
 - **Team plays:** Drives 1-4 have 7 general prompts. From Drive #5 (`TEAM_SLOT_FROM`) every drive has 5 general + 2 team prompts (`TEAM_PLAYS_PER_DRIVE`), never two from the same team, never as play 1.
 - **Don't change `LAUNCH_DATE` (2026-11-03), `TEAM_SLOT_FROM`, `COOLDOWN_DAYS`, or the seeds** (`0x5eed`, `0x7ea`, `31337`) without asking. That renumbers or reshuffles drives.
-- Pool size: 117 general + 96 team = 213 prompts. General prompts are all new through Drive #21 (Nov 23, 2026) and first recycle at Drive #22 (Nov 24); team prompts are all new through Drive #52 (Dec 24). Each new batch of N general prompts adds about N/5 days of all-new drives. Growing the general database is still the priority.
+- Pool size: 118 general + 96 team = 214 prompts. General prompts are all new through Drive #21 (Nov 23, 2026) and first recycle at Drive #22 (Nov 24); team prompts are all new through Drive #52 (Dec 24). Each new batch of N general prompts adds about N/5 days of all-new drives. Growing the general database is still the priority.
 - League-leader stats: nflverse play-by-play undercounts some 1999 games (Warner shows 38 TDs; official is 41). Use nflverse for 2000+ only, grouped by player_id (never by name: there are two Steve Smiths), and official year-by-year leader tables for earlier seasons. Sacks are official only from 1982.
 - Team answer lists are generated, not hand-written. Tiers come from a popularity estimate (seasons with the team, stats, career fame, plus the legends list). Fix a bad tier by editing `scripts/legends.py` or the scoring in `build_team_data.py` and regenerating. Data is nflverse (CC BY 4.0); keep the credit line in How to Play.
 - Day boundaries use `America/Chicago`. Use `todayKey()` rather than `new Date()` math.

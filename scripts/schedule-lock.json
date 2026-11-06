@@ -25,5 +25,14 @@
     "stat",
     "relocated",
     "hof-qb"
+  ],
+  "4": [
+    "defense",
+    "sec",
+    "trick-play",
+    "non-qb-first-pick",
+    "roof",
+    "formation",
+    "won-sb"
   ]
 }
