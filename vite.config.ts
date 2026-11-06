@@ -7,7 +7,8 @@ import { defineConfig, type Plugin } from 'vite'
 // cached when a drive loads them instead, so installing doesn't download all 96.
 const PUBLIC_PRECACHE = [
   '/manifest.webmanifest',
-  '/favicon.svg',
+  '/favicon-32.png',
+  '/favicon-64.png',
   '/icons/icon-192.png',
   '/apple-touch-icon.png',
   '/sounds/crowd-cheer.mp3',
