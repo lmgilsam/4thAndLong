@@ -52,7 +52,7 @@ function lightsLevel(t: number): number {
 }
 
 /** The crowd pops on the Alabama clue. */
-const roaring = (t: number) => within(t, T.clue3 + 0.5, T.clue3 + 2.6)
+const roaring = (t: number) => within(t, T.cheer, T.cheer + 2.2)
 
 function Stadium({ t }: { t: number }) {
   const lv = lightsLevel(t)
@@ -123,9 +123,12 @@ function landedFlags(t: number): number {
   return n
 }
 
+/** When each down shows on the scoreboard: clue 3's down flips at the freeze, before its card. */
+const downAtOf = (c: (typeof CLUES)[number]) => (c.n === 3 ? T.freeze : c.at)
+
 function downText(t: number): string {
   if (t >= T.fourth) return '4TH & LONG'
-  const c = [...CLUES].reverse().find((x) => t >= x.at - 0.1)
+  const c = [...CLUES].reverse().find((x) => t >= downAtOf(x) - 0.1)
   return c ? c.down : '1ST & 10'
 }
 
@@ -134,7 +137,8 @@ function Board({ t }: { t: number }) {
   const left = 12 - landedFlags(t)
   const lastDrop = Math.max(...CLUES.flatMap((c) => SUSPECTS.filter((s) => s.out === c.n).map((_, i) => c.flags + i * FLAG_GAP + FLAG_FALL)).filter((x) => x <= t), -9)
   const bump = 1 + 0.35 * (1 - prog(t, lastDrop, lastDrop + 0.25))
-  const downAt = t >= T.fourth ? T.fourth : ([...CLUES].reverse().find((x) => t >= x.at - 0.1)?.at ?? 0) - 0.1
+  const cur = [...CLUES].reverse().find((x) => t >= downAtOf(x) - 0.1)
+  const downAt = t >= T.fourth ? T.fourth : (cur ? downAtOf(cur) : 0) - 0.1
   const flip = easeBack(prog(t, downAt, downAt + 0.3))
   const fourth = t >= T.fourth
   return (
@@ -160,16 +164,19 @@ function Board({ t }: { t: number }) {
 // ---------- Clue card ----------
 function ClueCard({ t }: { t: number }) {
   if (t < T.clue1 || t >= T.fourth + 0.15) return null
-  const c = [...CLUES].reverse().find((x) => t >= x.at) ?? CLUES[0]
   const freezing = within(t, T.freeze, T.clue3)
-  const n = freezing ? 3 : c.n
-  const slam = freezing ? easeBack(prog(t, T.freeze, T.freeze + 0.3)) : easeBack(prog(t, c.at, c.at + 0.3))
+  const c = freezing ? CLUES[2] : ([...CLUES].reverse().find((x) => t >= x.at) ?? CLUES[0])
+  const cardAt = freezing ? T.freeze : c.at
+  const slam = easeBack(prog(t, cardAt, cardAt + 0.3))
+  const shown = !freezing && t >= c.reveal
+  const pop = easeBack(prog(t, c.reveal, c.reveal + 0.25))
   const out = prog(t, T.fourth, T.fourth + 0.15)
-  const text = freezing ? '. . .' : c.text
   return (
     <div className="fr-clue" style={{ opacity: clamp(slam * 2) * (1 - out), transform: `scale(${1.25 - 0.25 * slam})` }}>
-      <span className="fr-clue-tag">CLUE {n}</span>
-      <span className="fr-clue-text">{text}</span>
+      <span className="fr-clue-tag">CLUE {c.n}</span>
+      {shown
+        ? <span className="fr-clue-text" style={{ display: 'inline-block', transform: `scale(${0.8 + 0.2 * pop})`, transformOrigin: 'left center', opacity: clamp(pop * 2) }}>{c.text}</span>
+        : <span className="fr-clue-text">. . .</span>}
     </div>
   )
 }
