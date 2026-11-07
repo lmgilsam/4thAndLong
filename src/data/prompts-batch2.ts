@@ -77,11 +77,11 @@ export const BATCH_2: PromptDef[] = [
     4: ['Bob Sanders'],
   }),
 
-  prompt('oroy', 'Awards', 'Name an Offensive Rookie of the Year from 2010 to 2024', {
+  prompt('oroy', 'Awards', 'Name an Offensive Rookie of the Year from 2010 to 2025', {
     1: ['Justin Herbert', 'Saquon Barkley', "Ja'Marr Chase", 'C.J. Stroud|CJ Stroud', 'Jayden Daniels',
         'Dak Prescott'],
     2: ['Cam Newton', 'Odell Beckham Jr.|OBJ|Odell Beckham', 'Alvin Kamara', 'Kyler Murray',
-        'Robert Griffin III|RG3|RGIII', 'Todd Gurley'],
+        'Robert Griffin III|RG3|RGIII', 'Todd Gurley', 'Tetairoa McMillan|Tet McMillan|Tet'],
     3: ['Garrett Wilson', 'Eddie Lacy', 'Sam Bradford'],
   }),
 

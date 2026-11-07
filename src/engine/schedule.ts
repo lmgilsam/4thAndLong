@@ -88,8 +88,28 @@ function generalEntries(batches: PromptDef[][]): Entry[] {
     })))
 }
 
+/**
+ * Team prompts come in waves: the launch set (QB/RB/defense, no go-live date) and
+ * groups added later (WR/TE from Nov 8, 2026). Each wave keeps its own shuffle
+ * (seed 0x7ea + 1000 x wave), so the launch set's order never changes. Debut order
+ * is each prompt's position within its wave from 0 to 1, so a later wave mixes in
+ * evenly with the launch prompts still unused instead of waiting behind all of them.
+ */
 function teamEntries(): Entry[] {
-  return shuffled(TEAM_PROMPTS, 0x7ea).map((p, i) => ({ p, live: liveFromDate(p) ?? 1, debut: i }))
+  const waves = new Map<string, PromptDef[]>()
+  for (const p of TEAM_PROMPTS) {
+    const key = p.from ?? ''
+    waves.set(key, [...(waves.get(key) ?? []), p])
+  }
+  return [...waves.keys()].sort().flatMap((key, wi) => {
+    const wave = shuffled(waves.get(key)!, 0x7ea + wi * 1000)
+    return wave.map((p, i) => ({ p, live: liveFromDate(p) ?? 1, debut: (i + (wi ? 0.5 : 0)) / wave.length }))
+  })
+}
+
+/** Team prompts already live on a given drive (practice must not show future ones). */
+function liveTeamPrompts(driveNo: number): PromptDef[] {
+  return TEAM_PROMPTS.filter((p) => (liveFromDate(p) ?? 1) <= driveNo)
 }
 
 interface Lane { entries: Entry[]; days: PromptDef[][]; lastUsed: Map<string, number> }
@@ -181,7 +201,7 @@ export function randomPractice(): PromptDef[] {
     return from != null && from <= today
   })
   const plays = shuffled(live, seed).slice(0, PLAYS_PER_DRIVE - TEAM_PLAYS_PER_DRIVE)
-  const teams = shuffled(TEAM_PROMPTS, seed + 1)
+  const teams = shuffled(liveTeamPrompts(today), seed + 1)
   const picked = [teams[0], teams.find((t) => t.team !== teams[0].team)!]
   picked.forEach((t, i) => plays.splice(1 + ((seed >> (i * 3)) % plays.length), 0, t))
   return plays

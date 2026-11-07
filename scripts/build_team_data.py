@@ -1,13 +1,18 @@
 """
-Builds the per-team answer lists for the "Name a QB / RB / defensive player who
-has played for <team>" prompts.
+Builds the per-team answer lists for the "Name a QB / RB / defensive player /
+WR or TE who has played for <team>" prompts.
 
 Source: nflverse open data (https://github.com/nflverse/nflverse-data), rosters
 1920-present and season stats 1999-present. Download into a folder and run:
 
-    python3 scripts/build_team_data.py /path/to/nfldata
+    python3 scripts/build_team_data.py /path/to/nfldata            # every group
+    python3 scripts/build_team_data.py /path/to/nfldata --groups rec  # just these groups
 
-Writes public/teams/<TEAM>-<qb|rb|def>.json, plus src/data/team-index.json.
+Writes public/teams/<TEAM>-<qb|rb|def|rec>.json, plus src/data/team-index.json.
+With --groups, only those groups are rebuilt and every other index entry is kept
+exactly as it is. The index is always ordered by wave (qb/rb/def first, then rec),
+team by team inside a wave, so adding a group never moves the existing prompts.
+A later wave goes live on its LIVE_FROM date and has its own shuffle (schedule.ts).
 Tiers are a popularity estimate (seasons with the team, stats with the team,
 career fame); they get replaced by real answer frequencies once people play.
 """
@@ -22,7 +27,9 @@ import pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from legends import LEGENDS  # noqa: E402
 
-SRC = sys.argv[1] if len(sys.argv) > 1 else '/home/claude/nfldata'
+ARGS = [a for a in sys.argv[1:] if not a.startswith('--')]
+SRC = ARGS[0] if ARGS else '/home/claude/nfldata'
+ONLY = set(sys.argv[sys.argv.index('--groups') + 1].split(',')) if '--groups' in sys.argv else None
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'public', 'teams')
 
@@ -71,7 +78,11 @@ GROUPS = {
     'rb': {'pos': {'RB', 'FB', 'HB'}, 'label': 'running back', 'cuts': [3, 12, 35, 80]},
     'def': {'pos': {'DB', 'DL', 'LB', 'CB', 'DE', 'OLB', 'DT', 'SS', 'FS', 'MLB', 'ILB', 'NT', 'S'},
             'label': 'defensive player', 'cuts': [5, 20, 60, 150]},
+    'rec': {'pos': {'WR', 'TE'}, 'label': 'wide receiver or tight end', 'cuts': [5, 15, 40, 90]},
 }
+# Groups added after launch: (wave, go-live date). Wave 0 shipped with the game.
+WAVE = {'qb': 0, 'rb': 0, 'def': 0, 'rec': 1}
+LIVE_FROM = {'rec': '2026-11-08'}
 
 
 def era_weight(season: int) -> float:
@@ -113,13 +124,14 @@ def main():
 
     # season stats 1999+ (regular season)
     st = pd.read_csv(os.path.join(SRC, 'player_stats_season.csv'), low_memory=False)
-    st = st[st.season_type == 'REG'][['player_id', 'player_display_name', 'season', 'recent_team', 'passing_yards', 'rushing_yards']]
+    ycols = ['player_id', 'player_display_name', 'season', 'recent_team', 'passing_yards', 'rushing_yards', 'receiving_yards']
+    st = st[st.season_type == 'REG'][ycols]
     s25 = pd.read_csv(os.path.join(SRC, 'stats_player_reg_2025.csv'), low_memory=False)
-    s25 = s25[['player_id', 'player_display_name', 'season', 'recent_team', 'passing_yards', 'rushing_yards']]
+    s25 = s25[ycols]
     st = pd.concat([st, s25]).fillna(0)
     st['fr'] = st.recent_team.map(lambda t: STAT_TEAM.get(t, t))
-    team_yds = st.groupby(['player_id', 'fr'])[['passing_yards', 'rushing_yards']].sum()
-    car_yds = st.groupby('player_id')[['passing_yards', 'rushing_yards']].sum()
+    team_yds = st.groupby(['player_id', 'fr'])[['passing_yards', 'rushing_yards', 'receiving_yards']].sum()
+    car_yds = st.groupby('player_id')[['passing_yards', 'rushing_yards', 'receiving_yards']].sum()
 
     # defensive season stats 1999+
     dcols = ['player_id', 'season', 'team', 'def_sacks', 'def_interceptions', 'def_fumbles_forced', 'def_tackles']
@@ -143,12 +155,19 @@ def main():
     index = []
     for key, (team_name, label, _) in FRANCHISES.items():
         for g, cfg in GROUPS.items():
+            if ONLY is not None and g not in ONLY:
+                continue
             d = ros[(ros.fr == key) & (ros.position.isin(cfg['pos']))]
             if d.empty:
                 continue
             per = {}
             legend_set = set(LEGENDS.get(key, {}).get(g, []))
             missing = legend_set - set(d.full_name)
+            if missing and g == 'rec':
+                # Two-way-era ends sit at other positions in the rosters; a legend counts
+                # at any position he held for this franchise.
+                d = pd.concat([d, ros[(ros.fr == key) & ros.full_name.isin(missing)]])
+                missing = legend_set - set(d.full_name)
             if missing:
                 print('legend not found', key, g, sorted(missing))
             for name, grp in d.groupby('full_name'):
@@ -164,10 +183,14 @@ def main():
                         ty = team_yds.rushing_yards.get((gid, key), 0)
                         cy = car_yds.rushing_yards.get(gid, 0)
                         score += ty / 800 + cy / 4000
+                    elif g == 'rec':
+                        ty = team_yds.receiving_yards.get((gid, key), 0)
+                        cy = car_yds.receiving_yards.get(gid, 0)
+                        score += ty / 500 + cy / 3000
                     else:
                         score += def_team.get((gid, key), 0) / 3 + def_car.get(gid, 0) / 12
                 if name in legend_set:
-                    score += 12
+                    score += 8 if g == 'rec' else 12  # receivers' yards already lift modern stars
                 score += 0.25 * car_seasons.get(name, 0)
                 per[name] = max(per.get(name, 0), score)
             ranked = sorted(per.items(), key=lambda kv: -kv[1])
@@ -179,13 +202,24 @@ def main():
             pid = f'team-{key.lower()}-{g}'
             with open(os.path.join(OUT, f'{key}-{g}.json'), 'w') as f:
                 json.dump({'id': pid, 'tiers': tiers}, f, separators=(',', ':'))
-            index.append({'id': pid, 'team': key, 'group': g, 'teamName': team_name,
-                          'text': f"Name a {cfg['label']} who has played for {label}", 'file': f'teams/{key}-{g}.json',
-                          'count': len(ranked), 'preview': {t: tiers[t][:4] for t in tiers}})
+            entry = {'id': pid, 'team': key, 'group': g, 'teamName': team_name,
+                     'text': f"Name a {cfg['label']} who has played for {label}", 'file': f'teams/{key}-{g}.json',
+                     'count': len(ranked)}
+            if g in LIVE_FROM:
+                entry['from'] = LIVE_FROM[g]
+            entry['preview'] = {t: tiers[t][:4] for t in tiers}
+            index.append(entry)
     previews = [dict(e) for e in index]
     for e in index:
         e.pop('preview')
-    with open(os.path.join(ROOT, 'src', 'data', 'team-index.json'), 'w') as f:
+    index_path = os.path.join(ROOT, 'src', 'data', 'team-index.json')
+    if ONLY is not None:
+        with open(index_path) as f:
+            kept = [e for e in json.load(f) if e['group'] not in ONLY]
+        index = kept + index
+    # Stable sort: wave first, then the order entries were already in (team by team).
+    index.sort(key=lambda e: WAVE[e['group']])
+    with open(index_path, 'w') as f:
         json.dump(index, f, indent=1)
     with open(os.path.join(SRC, 'team-preview.json'), 'w') as f:
         json.dump(previews, f, indent=1)
