@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { PromptDef } from '../data/types'
+import type { AnswerDef, PromptDef } from '../data/types'
 import { matchAnswer, normalize } from '../engine/match'
 import { ensureAnswers } from '../data/team-prompts'
 import { saveDrive, type DriveState, type PlayResult } from '../engine/storage'
@@ -37,6 +37,8 @@ export function Drive({ session, initial, onComplete, paused = false }: {
   const [input, setInput] = useState('')
   const [notice, setNotice] = useState<{ text: string; tone: 'miss' | 'info' } | null>(null)
   const [shaking, setShaking] = useState(false)
+  /** "Did you mean...?" waiting on the player: confirm, tap an option, or edit. */
+  const [review, setReview] = useState<{ raw: string; options: AnswerDef[]; which: boolean } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [ready, setReady] = useState(() => session.prompts.every((p) => !p.src || p.answers.length > 0))
   const [loadError, setLoadError] = useState(false)
@@ -86,6 +88,7 @@ export function Drive({ session, initial, onComplete, paused = false }: {
     setRevealing(result)
     setInput('')
     setNotice(null)
+    setReview(null)
   }, [state, persist])
 
   // Play clock expired.
@@ -111,6 +114,19 @@ export function Drive({ session, initial, onComplete, paused = false }: {
     else if (tier === 4) fx.flash(color, 0.2)
   }
 
+  function scoreHit(answer: AnswerDef, typed: string) {
+    if (!prompt) return
+    const t = TIERS[answer.tier]
+    celebrateHit(t.id, t.color)
+    finishPlay({ promptId: prompt.id, outcome: 'hit', answerName: answer.name, input: typed, tier: t.id, points: t.points, yards: t.yards, guesses: [...guesses, typed] })
+  }
+
+  /** Tapping one of the "Did you mean" / "Which one" options counts as that answer. */
+  function pick(answer: AnswerDef) {
+    if (phase !== 'live' || !prompt || !cur) return
+    scoreHit(answer, review?.raw ?? input.trim())
+  }
+
   function submit(e: React.FormEvent) {
     e.preventDefault()
     if (phase !== 'live' || !prompt || !cur) return
@@ -118,21 +134,25 @@ export function Drive({ session, initial, onComplete, paused = false }: {
     if (!raw) return
     const res = matchAnswer(prompt, raw)
     if (res.kind === 'hit') {
-      const t = TIERS[res.answer.tier]
-      celebrateHit(t.id, t.color)
-      finishPlay({ promptId: prompt.id, outcome: 'hit', answerName: res.answer.name, input: raw, tier: t.id, points: t.points, yards: t.yards, guesses: [...guesses, raw] })
+      // Confirming a suggestion: keep what they actually typed for the record.
+      const confirmed = review && review.options.length === 1 && review.options[0] === res.answer
+      scoreHit(res.answer, confirmed ? review.raw : raw)
+      return
+    }
+    if (res.kind === 'suggest' || (res.kind === 'ambiguous' && res.options.length <= 4)) {
+      // Close, but not exact: ask before counting it. Doesn't cost a down.
+      sound.review()
+      setNotice(null)
+      setReview({ raw, options: res.options, which: res.kind === 'ambiguous' })
+      if (res.kind === 'suggest' && res.options.length === 1) setInput(res.options[0].name)
       return
     }
     if (res.kind === 'ambiguous') {
-      const firsts = [...new Set(res.options.map((o) => o.name.split(' ')[0]))]
-      setNotice({
-        text: firsts.length <= 4
-          ? `Which one? ${firsts.join(' or ')}? Be more specific.`
-          : `${res.options.length} players match that name. Add a first name.`,
-        tone: 'info',
-      })
+      setReview(null)
+      setNotice({ text: `${res.options.length} players match that name. Add a first name.`, tone: 'info' })
       return
     }
+    setReview(null)
     if (guesses.some((g) => normalize(g) === normalize(raw))) {
       setNotice({ text: 'Already ran that play. Try something else.', tone: 'info' })
       return
@@ -248,10 +268,14 @@ export function Drive({ session, initial, onComplete, paused = false }: {
               </div>
               <div className="clock-bar"><span style={{ transform: `scaleX(${clockPct})` }} /></div>
               <form className="answer-form" onSubmit={submit}>
+                {review && <ReviewCallout review={review} onPick={pick} />}
                 <input
                   ref={inputRef}
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => {
+                    setInput(e.target.value)
+                    if (review) setReview(null)
+                  }}
                   placeholder="Call your play…"
                   autoComplete="off"
                   autoCorrect="off"
@@ -282,6 +306,46 @@ export function Drive({ session, initial, onComplete, paused = false }: {
             {isLast ? 'SEE THE DRIVE ▸' : 'NEXT PLAY ▸'}
           </button>
         </section>
+      )}
+    </div>
+  )
+}
+
+/** Krillion-style "did you mean" bubble that sits above the answer box. */
+function ReviewCallout({ review, onPick }: {
+  review: { raw: string; options: AnswerDef[]; which: boolean }
+  onPick: (a: AnswerDef) => void
+}) {
+  const single = review.options.length === 1 && !review.which
+  // "Manning" -> WHICH MANNING? [Peyton] [Eli]. Short buttons fit on a phone.
+  const words = review.options.map((a) => a.name.trim().split(/\s+/))
+  const last = words[0].at(-1) ?? ''
+  const firsts = words.map((w) => w.slice(0, -1).join(' '))
+  const shareSurname = !single && words.every((w) => w.length > 1 && w.at(-1) === last) && new Set(firsts).size === firsts.length
+  const flag = single ? 'DID YOU MEAN?' : shareSurname ? `WHICH ${last.toUpperCase()}?` : review.which ? 'WHICH ONE?' : 'DID YOU MEAN?'
+  return (
+    <div className="review" role="status" aria-live="polite">
+      <span className="review-flag">{flag}</span>
+      {single ? (
+        <>
+          <p className="review-swap">
+            <span className="review-typed">“{review.raw}”</span>
+            <span className="review-arrow" aria-hidden="true">→</span>
+            <span className="review-fix">“{review.options[0].name}”</span>
+          </p>
+          <p className="review-help">snap to confirm · or edit</p>
+        </>
+      ) : (
+        <>
+          <div className="review-options">
+            {review.options.map((a, i) => (
+              <button key={a.name} type="button" className="review-option" onClick={() => onPick(a)} aria-label={a.name}>
+                {shareSurname ? firsts[i] : a.name}
+              </button>
+            ))}
+          </div>
+          <p className="review-help">tap one · or keep typing</p>
+        </>
       )}
     </div>
   )
