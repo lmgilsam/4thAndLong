@@ -248,14 +248,14 @@ export function matchAnswer(p: PromptDef, raw: string): MatchResult {
   const byFlat = idx.flat.get(flatInput)
   if (byFlat?.size === 1) return { kind: 'hit', answer: [...byFlat][0] }
 
-  // 5. Same name with another first-name form: "Pat Mahomes", "Mike Vick". Asked, not
-  // counted, because "Bobby Bell" and "Bob Bell" can be two different players.
+  // 4. Same name with another first-name form: "Pat Mahomes", "Mike Vick" (Leo's call:
+  // counts right away, even though "Bobby Bell" and "Bob Bell" can be different players).
   const c = canonKey(tokens)
   const byCanon = c ? idx.canon.get(c) : undefined
-  if (byCanon && byCanon.size <= MAX_OPTIONS) return { kind: 'suggest', options: [...byCanon] }
+  if (byCanon?.size === 1) return { kind: 'hit', answer: [...byCanon][0] }
   if (byCanon) return { kind: 'ambiguous', options: [...byCanon] }
 
-  // 6. Typos: never counted on their own. Offer the closest answer(s) to confirm.
+  // 5. Typos: never counted on their own. Offer the closest answer(s) to confirm.
   if (flatInput.length < 4) return { kind: 'miss' }
   const best = new Map<AnswerDef, number>()
   const consider = (a: AnswerDef, d: number) => {

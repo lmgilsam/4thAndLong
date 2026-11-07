@@ -311,7 +311,7 @@ export function Drive({ session, initial, onComplete, paused = false }: {
   )
 }
 
-/** Krillion-style "did you mean" bubble that sits above the answer box. */
+/** Krillion-style "did you mean" bubble (flagged UNDER REVIEW) that sits above the answer box. */
 function ReviewCallout({ review, onPick }: {
   review: { raw: string; options: AnswerDef[]; which: boolean }
   onPick: (a: AnswerDef) => void
@@ -322,7 +322,7 @@ function ReviewCallout({ review, onPick }: {
   const last = words[0].at(-1) ?? ''
   const firsts = words.map((w) => w.slice(0, -1).join(' '))
   const shareSurname = !single && words.every((w) => w.length > 1 && w.at(-1) === last) && new Set(firsts).size === firsts.length
-  const flag = single ? 'DID YOU MEAN?' : shareSurname ? `WHICH ${last.toUpperCase()}?` : review.which ? 'WHICH ONE?' : 'DID YOU MEAN?'
+  const flag = shareSurname ? `WHICH ${last.toUpperCase()}?` : review.which ? 'WHICH ONE?' : 'UNDER REVIEW'
   return (
     <div className="review" role="status" aria-live="polite">
       <span className="review-flag">{flag}</span>

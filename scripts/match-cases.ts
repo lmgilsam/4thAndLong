@@ -42,7 +42,7 @@ const cases: [string, string, string][] = [
   // Typos: always asked, never counted on their own
   ['sb-qb', 'patrik mahomes', 'suggest:Patrick Mahomes'], ['sb-qb', 'Brett Farve', 'suggest:Brett Favre'], ['sb-qb', 'Farve', 'suggest:Brett Favre'],
   ['sb-qb', 'Rothlisberger', 'suggest:Ben Roethlisberger'], ['sb-qb', 'Mahomess', 'suggest:Patrick Mahomes'], ['sb-qb', 'Mannig', 'suggest:Peyton Manning'],
-  ['sb-qb', 'Pat Mahomes', 'suggest:Patrick Mahomes'], ['team-sf-qb', 'Capernick', 'suggest:Colin Kaepernick'],
+  ['sb-qb', 'Pat Mahomes', 'hit:Patrick Mahomes'], ['team-phi-qb', 'Mike Vick', 'hit:Michael Vick'], ['team-sf-qb', 'Capernick', 'suggest:Colin Kaepernick'],
   ['team-mia-qb', 'Tua Tagovaiola', 'suggest:Tua Tagovailoa'], ['team-pit-def', 'Polamalou', 'suggest:Troy Polamalu'],
   ['team-det-def', 'Ndamakong Suh', 'suggest:Ndamukong Suh'], ['team-det-rb', 'Jamyr Gibbs', 'suggest:Jahmyr Gibbs'],
   ['team-phi-qb', 'Mike Vik', 'suggest:Michael Vick'], ['penalty', 'pass interferance', 'suggest:Pass Interference'],
