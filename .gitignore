@@ -5,3 +5,8 @@ dist
 *.log
 .DS_Store
 __pycache__/
+
+# HyperFrames videos (video/): rendered files and per-machine working state
+video/**/renders/
+video/**/.hyperframes/
+video/**/*.mp4

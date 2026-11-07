@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="assets/vendor/gsap.min.js"></script>
+    <style>
+      /* Same fonts and colors as the game (src/index.css). */
+      @font-face { font-family: "Big Shoulders Display"; font-weight: 900; src: url("assets/fonts/big-shoulders-display-latin-900-normal.woff") format("woff"); }
+      @font-face { font-family: "Barlow Condensed"; font-weight: 500; src: url("assets/fonts/barlow-condensed-latin-500-normal.woff") format("woff"); }
+      @font-face { font-family: "Barlow Condensed"; font-weight: 800; src: url("assets/fonts/barlow-condensed-latin-800-normal.woff") format("woff"); }
+      @font-face { font-family: "Doto"; font-weight: 800; src: url("assets/fonts/doto-latin-800-normal.woff") format("woff"); }
+
+      :root {
+        --night: #050a07;
+        --chalk: #f2efe4;
+        --muted: #8fa398;
+        --amber: #ffb627;
+        --amber-deep: #a86f00;
+        --led-glow: 0 0 10px rgba(255, 182, 39, 0.75), 0 0 30px rgba(255, 140, 0, 0.35);
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--night); }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; }
+
+      #bg { position: absolute; inset: 0; }
+      #bg-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      #bg-shade {
+        position: absolute; inset: 0;
+        background:
+          radial-gradient(90% 45% at 50% 38%, rgba(5, 10, 7, 0.15) 0%, rgba(5, 10, 7, 0.6) 75%),
+          linear-gradient(rgba(5, 10, 7, 0.25) 0%, rgba(5, 10, 7, 0.5) 60%, rgba(5, 10, 7, 0.9) 100%);
+      }
+
+      /* Everything readable stays inside the 168-1330px band that TikTok/Reels leave clear. */
+      #stack {
+        position: absolute; left: 90px; right: 90px; top: 168px; height: 1162px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-align: center;
+      }
+      #badge { width: 300px; height: 300px; image-rendering: pixelated; border-radius: 40px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6); }
+      #title {
+        margin-top: 46px; font-family: "Big Shoulders Display"; font-weight: 900;
+        font-size: 180px; line-height: 0.86; color: var(--chalk); white-space: nowrap;
+        text-shadow: 0 5px 0 #0f3a20, 0 10px 0 #0a2615, 0 30px 60px rgba(0, 0, 0, 0.7);
+      }
+      #title .amp { color: var(--amber); font-size: 0.72em; text-shadow: var(--led-glow), 0 8px 0 #4d3200; }
+      #sub {
+        margin-top: 26px; font-family: "Doto"; font-weight: 800; font-size: 54px;
+        letter-spacing: 0.3em; padding-left: 0.3em; color: var(--amber); text-shadow: var(--led-glow);
+      }
+      #tiers { margin-top: 70px; display: flex; gap: 22px; }
+      .tier { width: 96px; height: 96px; border-radius: 14px; box-shadow: 0 8px 0 rgba(0, 0, 0, 0.45); }
+      #t1 { background: #eef2ee; } #t2 { background: #7ddc5f; } #t3 { background: #4fa3ff; }
+      #t4 { background: #b57bff; } #t5 { background: #ffd23f; }
+      #line {
+        margin-top: 54px; font-family: "Barlow Condensed"; font-weight: 800; font-size: 58px;
+        letter-spacing: 0.06em; color: var(--chalk); text-transform: uppercase;
+      }
+      #cta {
+        margin-top: 64px; padding: 26px 64px; border-radius: 18px; background: var(--amber); color: #1c1304;
+        font-family: "Barlow Condensed"; font-weight: 800; font-size: 64px; letter-spacing: 0.08em;
+        box-shadow: 0 10px 0 var(--amber-deep), 0 20px 60px rgba(255, 166, 0, 0.3);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="5" data-width="1080" data-height="1920"
+      data-composition-variables='[{"id":"sub","type":"string","label":"Subtitle","default":"THE DAILY DRIVE"},{"id":"line","type":"string","label":"Tagline","default":"Rarer answers, more yards"},{"id":"cta","type":"string","label":"Call to action","default":"4THANDLONG.IO"}]'>
+      <div id="bg" class="clip" data-start="0" data-duration="5" data-track-index="0">
+        <img id="bg-img" src="assets/card-bg.jpg" alt="" />
+        <div id="bg-shade"></div>
+      </div>
+
+      <div id="stack" class="clip" data-start="0" data-duration="5" data-track-index="1">
+        <img id="badge" src="assets/badge.png" alt="4th and Long badge" />
+        <h1 id="title">4TH <span class="amp">&amp;</span> LONG</h1>
+        <div id="sub" data-var-text="sub">THE DAILY DRIVE</div>
+        <div id="tiers">
+          <div class="tier" id="t1"></div>
+          <div class="tier" id="t2"></div>
+          <div class="tier" id="t3"></div>
+          <div class="tier" id="t4"></div>
+          <div class="tier" id="t5"></div>
+        </div>
+        <div id="line" data-var-text="line">Rarer answers, more yards</div>
+        <div id="cta" data-var-text="cta">4THANDLONG.IO</div>
+      </div>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // Slow push on the crowd for the whole card.
+      tl.fromTo("#bg-img", { scale: 1.08 }, { scale: 1.0, duration: 5, ease: "none" }, 0);
+
+      // Badge is already on screen at frame 0 (the thumbnail), then settles.
+      tl.fromTo("#badge", { scale: 1.12, y: 20 }, { scale: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0);
+
+      // Title slams in like the home screen.
+      tl.fromTo("#title", { scale: 1.7, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.28, ease: "power4.in" }, 0.15);
+      tl.fromTo("#stack", { x: 0 }, { keyframes: [{ x: -10, duration: 0.04 }, { x: 8, duration: 0.04 }, { x: -4, duration: 0.04 }, { x: 0, duration: 0.04 }] }, 0.43);
+
+      // LED subtitle flickers on.
+      tl.fromTo("#sub", { opacity: 0 }, { keyframes: [{ opacity: 1, duration: 0.05 }, { opacity: 0.2, duration: 0.05 }, { opacity: 1, duration: 0.05 }, { opacity: 0.5, duration: 0.04 }, { opacity: 1, duration: 0.08 }] }, 0.6);
+
+      // Tier squares pop in, Checkdown to Hail Mary.
+      tl.fromTo(".tier", { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(2.2)", stagger: 0.1 }, 1.0);
+
+      tl.fromTo("#line", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, ease: "power3.out" }, 1.75);
+      tl.fromTo("#cta", { y: 40, scale: 0.9, opacity: 0 }, { y: 0, scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.8)" }, 2.15);
+      tl.to("#cta", { scale: 1.05, duration: 0.25, ease: "power2.out", yoyo: true, repeat: 3 }, 3.2);
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

@@ -89,6 +89,8 @@ public/og/               Card background (card-bg.jpg, from scripts/card-bg.cjs)
 supabase/schema.sql      Tables + RPC functions. Run once in Supabase SQL Editor.
 scripts/                 validate-data, match-cases, dump-drive, og-image.cjs (link preview), card-bg.cjs (result card background), build_team_data.py (+ legends.py) to regenerate team prompts from nflverse data
 index.html               Page title and Open Graph / link preview tags
+video/                   HyperFrames promo videos, one folder each (not part of the game build; see "Video" below)
+.claude/skills/          HyperFrames skills (third-party, from heygen-com/hyperframes); skills-lock.json records the source
 ```
 
 ## Scoring
@@ -163,6 +165,19 @@ Domain: **4thandlong.io** (bought through Vercel, live Nov 5, 2026). The apex is
 - **Reading results:** in the Supabase SQL Editor run `select * from ref_report(30);` (visitors, players who finished a drive, drives, and players who came back on 2+ days, per ref). `ref_report` is not granted to anon.
 - Vercel Web Analytics on Hobby doesn't show UTM/ref breakdowns (that's Web Analytics Plus), which is why refs live in Supabase.
 - **Ref naming convention:** `channel-detail`, lowercase with hyphens, e.g. `reddit-texans`, `tiktok`, `ig-bio`, `x`, `gc-fantasy`, `uh`, `creator-<name>`.
+
+## Video: HyperFrames (added Nov 6, 2026)
+
+Promo and ad videos (Reels, TikTok, Shorts) are made with HyperFrames: HTML + CSS + GSAP rendered to MP4 by headless Chrome and FFmpeg, locally and for free. Videos reuse the game's real fonts, colors and pixel art, so they look like the game.
+
+- **Skills:** the core four from `heygen-com/hyperframes` live in `.claude/skills/` (`hyperframes`, `hyperframes-cli`, `hyperframes-registry`, `media-use`), installed at commit `6004508` / CLI 0.9.19 and recorded in `skills-lock.json`. Read `/hyperframes` first for any video work. Don't add the other five (figma, slideshow, remotion-to-hyperframes, reverse-any-video, style-sampling) unless Leo asks; the last two need the paid Pro plan. Leo updates skills himself with `npx hyperframes skills update`.
+- **Telemetry stays off.** Prefix every HyperFrames command with `HYPERFRAMES_NO_TELEMETRY=1 DO_NOT_TRACK=1 HYPERFRAMES_SKIP_SKILLS=1`, and skip the skills' "usage beacon" (`hyperframes events`) and `feedback` steps. Leo should run `npx hyperframes telemetry disable` once on his own computer.
+- **Free only:** render locally (`render`). Don't use `cloud render`, `auth login`, HeyGen voices/avatars, or anything that bills unless Leo asks.
+- **Layout:** one project per video in `video/<name>/` (scaffold with `npx hyperframes init video/<name> --skip-skills --skill=hyperframes`). `video/` is not part of the game: Vite, tsc, oxlint (`ignorePatterns`) and Vercel never touch it. Renders go to `video/<name>/renders/`, and those plus `.hyperframes/` and `*.mp4` are gitignored, so send finished videos to Leo instead of committing them.
+- **Per project:** copy `assets/vendor/gsap.min.js` and `assets/fonts/` from `video/end-card/` (the fonts are the `public/og/*.woff` files) instead of the CDN GSAP that `init` writes: the renderer won't load CDN scripts in cloud sessions, and a local copy keeps renders offline and reproducible. Declare every font with `@font-face` and no fallback families (`check` fails on fallback names like Impact). Use the colors from `src/index.css` and the tier colors from `tiers.ts`. Vertical is 1080x1920 at 30 fps; keep text between y 168 and 1330 (the band TikTok/Reels leave clear).
+- **Loop:** edit, `npx hyperframes check --json` (must be ok), `npx hyperframes snapshot --at <t,...>` and look at the PNGs, then `npx hyperframes render --quality delivery -o renders/<name>.mp4`, then check `ffprobe` and a few decoded frames. In cloud sessions also set `HYPERFRAMES_BROWSER_PATH=/usr/bin/google-chrome` (it can't download chrome-headless-shell).
+- `data-var-text` replaces an element's whole contents, so don't put it on markup with child spans (the title's amber `&`).
+- **`video/end-card/`:** 5s vertical end card for ads (badge, title slam, THE DAILY DRIVE, tier squares, tagline, 4THANDLONG.IO). Editable text variables: `sub`, `line`, `cta`.
 
 ## Home screen app (PWA, added Nov 5, 2026)
 
