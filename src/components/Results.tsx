@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { SHARE_URL } from '../config'
 import type { PromptDef } from '../data/types'
-import { rarestAnswers } from '../engine/match'
+import { boardPicks } from '../engine/match'
 import { msUntilNextDrive } from '../engine/schedule'
 import type { DriveState, Stats } from '../engine/storage'
 import { encodeShare } from '../engine/share'
@@ -186,12 +186,13 @@ export function Results({ state, prompts, label, stats, mode, celebrate = false,
       )}
 
       <section className="panel">
-        <h3 className="panel-title">PLAY BY PLAY</h3>
+        <h3 className="panel-title"><b>PLAY BY PLAY</b> <span>not a full list: unlisted answers can score just as high</span></h3>
         <ol className="pbp">
           {state.results.map((r, i) => {
             const p = prompts.find((x) => x.id === r.promptId)
             const t = r.tier ? TIERS[r.tier] : null
-            const best = p ? rarestAnswers(p, 1)[0] : null
+            const top = p ? boardPicks(p, r.answerName) : []
+            const best = top[0]
             return (
               <li key={i}>
                 <p className="pbp-q">{p?.text}</p>
@@ -201,8 +202,31 @@ export function Results({ state, prompts, label, stats, mode, celebrate = false,
                   </span>
                   <span>{r.answerName ?? (r.guesses.length ? r.guesses.join(', ') : 'no answer')}</span>
                 </p>
-                {best && best.name !== r.answerName && (
-                  <p className="pbp-best">Rare pick on the board: <strong>{best.name}</strong></p>
+                {best && (
+                  <details className="pbp-top">
+                    <summary className="pbp-best">
+                      {best.name === r.answerName ? (
+                        <span>{best.tier === 5 ? 'You hit a Hail Mary' : 'You found the rarest answer on the board'}</span>
+                      ) : (
+                        <span>Rare pick on the board: <strong>{best.name}</strong></span>
+                      )}
+                      <span className="pbp-toggle">TOP PICKS</span>
+                    </summary>
+                    <ol className="pbp-top-list">
+                      {top.map((a, j) => {
+                        const at = TIERS[a.tier]
+                        const mine = a.name === r.answerName
+                        return (
+                          <li key={a.name} className={mine ? 'mine' : undefined}>
+                            <span className="pbp-rank">{j + 1}</span>
+                            <span className="pill" style={{ color: at.color, borderColor: at.color }}>{at.name}</span>
+                            <span className="pbp-top-name">{a.name}</span>
+                            {mine && <span className="pbp-yours">YOUR PICK</span>}
+                          </li>
+                        )
+                      })}
+                    </ol>
+                  </details>
                 )}
               </li>
             )
