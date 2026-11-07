@@ -1,5 +1,8 @@
 import { PROMPTS } from '../src/data/prompts'
-import { normalize, matchAnswer } from '../src/engine/match'
+import { normalize, matchAnswer, attachedNicknames } from '../src/engine/match'
+import { NICKNAMES } from '../src/data/nicknames'
+import type { TierId } from '../src/data/types'
+import { readFileSync } from 'node:fs'
 import { BATCHES } from '../src/data/prompts'
 import { TEAM_PROMPTS } from '../src/data/team-prompts'
 import {
@@ -34,6 +37,25 @@ for (const p of PROMPTS) {
   const tiers = [1,2,3,4,5].map(t => p.answers.filter(a => a.tier === t).length)
   console.log(`${p.id.padEnd(20)} ${String(p.answers.length).padStart(3)} answers  tiers ${tiers.join('/')}`)
 }
+
+// ---- Nicknames (data/nicknames.ts), checked in every prompt incl. the team prompts ----
+for (const p of TEAM_PROMPTS) {
+  const data = JSON.parse(readFileSync(new URL(`../public/${p.src}`, import.meta.url), 'utf8')) as { tiers: Record<string, string[]> }
+  p.answers = Object.entries(data.tiers).flatMap(([t, names]) => names.map((name) => ({ name, aliases: [], tier: Number(t) as TierId })))
+}
+const usedNick = new Set<string>()
+let nickCount = 0
+for (const p of [...PROMPTS, ...TEAM_PROMPTS]) {
+  for (const { answer, nick } of attachedNicknames(p)) {
+    nickCount++
+    usedNick.add(normalize(answer.name))
+    for (const a of answer.aliases) usedNick.add(normalize(a))
+    const r = matchAnswer(p, nick)
+    if (r.kind !== 'hit' || r.answer !== answer) { console.log(`[${p.id}] nickname "${nick}" -> ${r.kind === 'hit' ? r.answer.name : r.kind}, expected ${answer.name}`); problems++ }
+  }
+}
+const unused = Object.keys(NICKNAMES).filter((name) => !usedNick.has(normalize(name)))
+console.log(`\nNicknames: ${nickCount} attached across all prompts.${unused.length ? ` Not an answer anywhere yet: ${unused.join(', ')}` : ''}`)
 
 // ---- Schedule checks ----
 const today = driveNumber(todayKey())

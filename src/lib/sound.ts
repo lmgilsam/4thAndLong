@@ -306,6 +306,11 @@ export const sound = {
   tick(secs: number) {
     tone({ freq: secs <= 2 ? 1320 : 990, type: 'square', dur: 0.05, vol: 0.05, filter: 3000 })
   },
+  /** "Did you mean...?": a quick two-note question blip, rising. */
+  review() {
+    tone({ freq: 660, type: 'triangle', dur: 0.08, vol: 0.08 })
+    tone({ freq: 990, type: 'triangle', dur: 0.12, vol: 0.08, at: 0.08 })
+  },
   /** Wrong answer: a low thud. */
   miss() {
     tone({ freq: 150, to: 70, type: 'square', dur: 0.22, vol: 0.12, filter: 900 })
