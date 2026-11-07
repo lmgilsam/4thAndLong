@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { SHARE_URL } from '../config'
 import type { PromptDef } from '../data/types'
-import { rarestAnswers } from '../engine/match'
+import { boardPicks } from '../engine/match'
 import { msUntilNextDrive } from '../engine/schedule'
 import type { DriveState, Stats } from '../engine/storage'
 import { encodeShare } from '../engine/share'
@@ -186,12 +186,12 @@ export function Results({ state, prompts, label, stats, mode, celebrate = false,
       )}
 
       <section className="panel">
-        <h3 className="panel-title">PLAY BY PLAY</h3>
+        <h3 className="panel-title"><b>PLAY BY PLAY</b> <span>not a full list: unlisted answers can score just as high</span></h3>
         <ol className="pbp">
           {state.results.map((r, i) => {
             const p = prompts.find((x) => x.id === r.promptId)
             const t = r.tier ? TIERS[r.tier] : null
-            const top = p ? rarestAnswers(p, 5) : []
+            const top = p ? boardPicks(p, r.answerName) : []
             const best = top[0]
             return (
               <li key={i}>
@@ -206,11 +206,11 @@ export function Results({ state, prompts, label, stats, mode, celebrate = false,
                   <details className="pbp-top">
                     <summary className="pbp-best">
                       {best.name === r.answerName ? (
-                        <span>You found the rarest answer on the board</span>
+                        <span>{best.tier === 5 ? 'You hit a Hail Mary' : 'You found the rarest answer on the board'}</span>
                       ) : (
                         <span>Rare pick on the board: <strong>{best.name}</strong></span>
                       )}
-                      <span className="pbp-toggle">TOP {top.length}</span>
+                      <span className="pbp-toggle">TOP PICKS</span>
                     </summary>
                     <ol className="pbp-top-list">
                       {top.map((a, j) => {

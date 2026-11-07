@@ -139,6 +139,24 @@ export function rarestAnswers(p: PromptDef, n = 1): AnswerDef[] {
   return [...p.answers].sort((a, b) => b.tier - a.tier).slice(0, n)
 }
 
+/**
+ * A short sample for the Play by Play dropdown, not the full answer list:
+ * one Hail Mary (the player's own if they hit one) when the prompt has any,
+ * then the rarest answers below that, Deep Balls first, for 5 total. If the
+ * player's answer would sit in that sample anyway, it takes the last spot.
+ */
+export function boardPicks(p: PromptDef, mine?: string): AnswerDef[] {
+  const own = mine ? p.answers.find((a) => a.name === mine) : undefined
+  const hails = p.answers.filter((a) => a.tier === 5)
+  const hail = own?.tier === 5 ? own : hails[0]
+  const slots = hail ? 4 : 5
+  let rest = p.answers.filter((a) => a.tier < 5).sort((a, b) => b.tier - a.tier).slice(0, slots)
+  if (own && own.tier < 5 && !rest.includes(own) && rest.length === slots && own.tier >= rest[slots - 1].tier) {
+    rest = [...rest.slice(0, slots - 1), own].sort((a, b) => b.tier - a.tier)
+  }
+  return hail ? [hail, ...rest] : rest
+}
+
 export function mostCommonAnswer(p: PromptDef): AnswerDef {
   return [...p.answers].sort((a, b) => a.tier - b.tier)[0]
 }
