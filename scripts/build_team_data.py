@@ -73,6 +73,18 @@ GROUPS = {
             'label': 'defensive player', 'cuts': [5, 20, 60, 150]},
 }
 
+# Current players (latest depth chart): starters are at most a Slant (tier 2), everyone
+# else on the depth chart at most a Chunk Play (tier 3). Players already rated more
+# common (e.g. Mahomes, a Checkdown) keep their tier. Leo's call, Nov 7, 2026.
+# Depth chart slots per group; a slot listed under 'backup_only' never counts as a start.
+DEPTH = {
+    'qb': {'slots': {'QB'}, 'backup_only': set()},
+    'rb': {'slots': {'RB', 'FB'}, 'backup_only': {'FB'}},
+    'def': {'slots': {'LDE', 'RDE', 'LDT', 'RDT', 'NT', 'WLB', 'MLB', 'SLB', 'LILB', 'RILB',
+                      'LCB', 'RCB', 'NB', 'SS', 'FS'}, 'backup_only': set()},
+}
+STARTER_TIER, BACKUP_TIER = 2, 3
+
 
 def era_weight(season: int) -> float:
     if season >= 2000: return 1.0
@@ -139,6 +151,18 @@ def main():
     def_team = dd.groupby(['player_id', 'fr']).impact.sum()
     def_car = dd.groupby('player_id').impact.sum()
 
+    # latest depth chart of the newest season, if downloaded (depth_charts_<year>.csv)
+    depth = None
+    dfiles = sorted(glob.glob(os.path.join(SRC, 'depth_charts_*.csv')))
+    if dfiles:
+        depth = pd.read_csv(dfiles[-1], low_memory=False)
+        dseason = int(re.search(r'(\d{4})', os.path.basename(dfiles[-1])).group(1))
+        depth = depth[depth.dt == depth.groupby('team').dt.transform('max')]
+        def depth_fr(t):
+            return next((k for k, (_, _, codes) in FRANCHISES.items() if any(t == c and a <= dseason <= b for c, a, b in codes)), None)
+        depth['fr'] = depth.team.map(depth_fr)
+        print(f'depth chart: {os.path.basename(dfiles[-1])}, latest snapshot {depth.dt.max()}, {depth.fr.nunique()} teams')
+
     # display name per player id: the spelling used most seasons league-wide (ties: most recent)
     nc = ros.dropna(subset=['gsis_id']).drop_duplicates(['gsis_id', 'full_name', 'season'])
     nc = nc.groupby(['gsis_id', 'full_name']).season.agg(['count', 'max']).reset_index()
@@ -157,6 +181,7 @@ def main():
                 continue
             per = {}
             spellings = {}
+            name_of_id = {}
             legend_set = set(LEGENDS.get(key, {}).get(g, []))
             missing = legend_set - set(d.full_name)
             if missing:
@@ -196,6 +221,9 @@ def main():
                 score += 0.25 * max(car_seasons.get(n, 0) for n in counts.index)
                 per[name] = max(per.get(name, 0), score)
                 spellings.setdefault(name, set()).update(counts.index)
+                for x in grp.gsis_id:
+                    if isinstance(x, str):
+                        name_of_id[x] = name
             ranked = sorted(per.items(), key=lambda kv: -kv[1])
             cuts = cfg['cuts']
             tiers = {1: [], 2: [], 3: [], 4: [], 5: []}
@@ -214,12 +242,37 @@ def main():
                 extra = sorted({a for a in alts if base(a) != base(name) and base(a) not in taken})
                 if extra:
                     aliases[name] = extra
+            # current starters and backups (see DEPTH)
+            if depth is not None and g in DEPTH:
+                dc = depth[(depth.fr == key) & depth.pos_abb.isin(DEPTH[g]['slots'])].dropna(subset=['player_name'])
+                start, bench, added = set(), set(), set()
+                for x, dn, r, pos in zip(dc.gsis_id, dc.player_name, dc.pos_rank, dc.pos_abb):
+                    dn = clean_name(dn)
+                    name = name_of_id.get(x) or (dn if dn in per else None)
+                    if name is None:
+                        # on the depth chart but not in this list (new signing, or a roster
+                        # spot at another position, like Travis Hunter at CB): add him
+                        name = dn
+                        per[name] = 0
+                        added.add(name)
+                    (start if r == 1 and pos not in DEPTH[g]['backup_only'] else bench).add(name)
+                bench -= start
+                for name in sorted(added):
+                    tiers[STARTER_TIER if name in start else BACKUP_TIER].append(name)
+                if added:
+                    print('added from depth chart', key, g, sorted(added))
+                for t in range(1, 6):
+                    for name in list(tiers[t]):
+                        cap = STARTER_TIER if name in start else BACKUP_TIER if name in bench else None
+                        if cap is not None and t > cap:
+                            tiers[t].remove(name)
+                            tiers[cap].append(name)
             pid = f'team-{key.lower()}-{g}'
             with open(os.path.join(OUT, f'{key}-{g}.json'), 'w') as f:
                 json.dump({'id': pid, 'tiers': tiers, **({'aliases': aliases} if aliases else {})}, f, separators=(',', ':'))
             index.append({'id': pid, 'team': key, 'group': g, 'teamName': team_name,
                           'text': f"Name a {cfg['label']} who has played for {label}", 'file': f'teams/{key}-{g}.json',
-                          'count': len(ranked), 'preview': {t: tiers[t][:4] for t in tiers}})
+                          'count': sum(len(v) for v in tiers.values()), 'preview': {t: tiers[t][:4] for t in tiers}})
     previews = [dict(e) for e in index]
     for e in index:
         e.pop('preview')

@@ -60,7 +60,7 @@
   "teamName": "Baltimore Ravens",
   "text": "Name a quarterback who has played for the Baltimore Ravens",
   "file": "teams/BAL-qb.json",
-  "count": 51
+  "count": 52
  },
  {
   "id": "team-bal-rb",
@@ -402,7 +402,7 @@
   "teamName": "Jacksonville Jaguars",
   "text": "Name a defensive player who has played for the Jacksonville Jaguars",
   "file": "teams/JAX-def.json",
-  "count": 604
+  "count": 605
  },
  {
   "id": "team-kc-qb",
@@ -636,7 +636,7 @@
   "teamName": "New York Giants",
   "text": "Name a running back who has played for the New York Giants",
   "file": "teams/NYG-rb.json",
-  "count": 324
+  "count": 325
  },
  {
   "id": "team-nyg-def",
@@ -726,7 +726,7 @@
   "teamName": "Pittsburgh Steelers",
   "text": "Name a defensive player who has played for the Pittsburgh Steelers",
   "file": "teams/PIT-def.json",
-  "count": 808
+  "count": 809
  },
  {
   "id": "team-sf-qb",
