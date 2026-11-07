@@ -1,12 +1,10 @@
 import { readFileSync } from 'node:fs'
 import { PROMPTS } from '../src/data/prompts'
-import { TEAM_PROMPTS } from '../src/data/team-prompts'
-import type { TierId } from '../src/data/types'
+import { TEAM_PROMPTS, teamAnswers, type TeamAnswerFile } from '../src/data/team-prompts'
 import { matchAnswer, type MatchResult } from '../src/engine/match'
 
 for (const p of TEAM_PROMPTS) {
-  const data = JSON.parse(readFileSync(new URL(`../public/${p.src}`, import.meta.url), 'utf8')) as { tiers: Record<string, string[]> }
-  p.answers = Object.entries(data.tiers).flatMap(([t, names]) => names.map((name) => ({ name, aliases: [], tier: Number(t) as TierId })))
+  p.answers = teamAnswers(JSON.parse(readFileSync(new URL(`../public/${p.src}`, import.meta.url), 'utf8')) as TeamAnswerFile)
 }
 const all = [...PROMPTS, ...TEAM_PROMPTS]
 const get = (id: string) => all.find((p) => p.id === id)!
@@ -47,6 +45,12 @@ const cases: [string, string, string][] = [
   ['team-det-def', 'Ndamakong Suh', 'suggest:Ndamukong Suh'], ['team-det-rb', 'Jamyr Gibbs', 'suggest:Jahmyr Gibbs'],
   ['team-phi-qb', 'Mike Vik', 'suggest:Michael Vick'], ['penalty', 'pass interferance', 'suggest:Pass Interference'],
   ['trick-play', 'flee flicker', 'suggest:Flea Flicker'], ['nfl-team', 'Stealers', 'suggest:Pittsburgh Steelers'],
+
+  // 2026 rosters (reported Nov 7, 2026) and merged roster spellings
+  ['team-tb-rb', 'Kenneth Gainwell', 'hit:Kenneth Gainwell'], ['team-tb-rb', 'Kenny Gainwell', 'hit:Kenneth Gainwell'],
+  ['team-kc-rb', 'Kenneth Walker', 'hit:Kenneth Walker III'], ['team-kc-rb', 'Kenneth Walker III', 'hit:Kenneth Walker III'],
+  ['team-kc-rb', 'Emmett Johnson', 'hit:Emmett Johnson'], ['team-sea-rb', 'Ken Walker', 'hit:Kenneth Walker III'],
+  ['team-mia-def', 'Cameron Wake', 'hit:Cameron Wake'], ['team-mia-def', 'Derek Wake', 'hit:Cameron Wake'],
 
   // Wrong answers must not turn into right ones
   ['sb-qb', 'holmes', 'miss'], ['sb-qb', 'Jim Kelly', 'miss'], ['sb-qb', 'Kirk Cousins', 'miss'], ['team-pit-def', 'Tim Brown', 'miss'],

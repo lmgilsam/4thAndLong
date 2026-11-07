@@ -1,10 +1,9 @@
 import { PROMPTS } from '../src/data/prompts'
 import { normalize, matchAnswer, attachedNicknames } from '../src/engine/match'
 import { NICKNAMES } from '../src/data/nicknames'
-import type { TierId } from '../src/data/types'
 import { readFileSync } from 'node:fs'
 import { BATCHES } from '../src/data/prompts'
-import { TEAM_PROMPTS } from '../src/data/team-prompts'
+import { TEAM_PROMPTS, teamAnswers, type TeamAnswerFile } from '../src/data/team-prompts'
 import {
   COOLDOWN_DAYS, LAUNCH_DATE, MIN_GENERAL_POOL,
   dateForDrive, driveNumber, liveDriveOf, promptsForDrive, todayKey,
@@ -40,8 +39,16 @@ for (const p of PROMPTS) {
 
 // ---- Nicknames (data/nicknames.ts), checked in every prompt incl. the team prompts ----
 for (const p of TEAM_PROMPTS) {
-  const data = JSON.parse(readFileSync(new URL(`../public/${p.src}`, import.meta.url), 'utf8')) as { tiers: Record<string, string[]> }
-  p.answers = Object.entries(data.tiers).flatMap(([t, names]) => names.map((name) => ({ name, aliases: [], tier: Number(t) as TierId })))
+  p.answers = teamAnswers(JSON.parse(readFileSync(new URL(`../public/${p.src}`, import.meta.url), 'utf8')) as TeamAnswerFile)
+}
+// Team answer spellings (aliases) must each match back to their own player
+for (const p of TEAM_PROMPTS) {
+  for (const a of p.answers) {
+    for (const alias of a.aliases) {
+      const r = matchAnswer(p, alias)
+      if (r.kind !== 'hit' || r.answer !== a) { console.log(`[${p.id}] spelling "${alias}" of ${a.name} -> ${r.kind === 'hit' ? r.answer.name : r.kind}`); problems++ }
+    }
+  }
 }
 const usedNick = new Set<string>()
 let nickCount = 0
@@ -62,6 +69,7 @@ const today = driveNumber(todayKey())
 for (const p of PROMPTS) {
   if (p.from && !/^\d{4}-\d{2}-\d{2}$/.test(p.from)) { console.log(`[${p.id}] bad from date "${p.from}" (use YYYY-MM-DD)`); problems++; continue }
   if (p.from && p.from <= LAUNCH_DATE) { console.log(`[${p.id}] from ${p.from} must be after launch (${LAUNCH_DATE})`); problems++ }
+  if (p.until && !/^\d{4}-\d{2}-\d{2}$/.test(p.until)) { console.log(`[${p.id}] bad until date "${p.until}" (use YYYY-MM-DD)`); problems++ }
   if (liveDriveOf(p.id) === null) { console.log(`[${p.id}] has no go-live date. Add its batch as liveFrom('YYYY-MM-DD', BATCH_N) in BATCHES`); problems++ }
 }
 
@@ -98,7 +106,7 @@ for (let d = 1; d <= today + HORIZON; d++) {
     seen.set(p.id, d)
   }
 }
-const liveSoon = BATCHES.flat().filter((p) => (liveDriveOf(p.id) ?? Infinity) <= today + HORIZON).length
+const liveSoon = BATCHES.flat().filter((p) => (liveDriveOf(p.id) ?? Infinity) <= today + HORIZON && (!p.until || p.until > todayKey())).length
 console.log(`\nSchedule: ${liveSoon} general prompts live within ${HORIZON} days; the ${COOLDOWN_DAYS}-day rule needs ${MIN_GENERAL_POOL}.`)
 console.log(firstRepeat ? `WARNING: ${firstRepeat}. Add prompts before then.` : `No prompt repeats inside ${COOLDOWN_DAYS} days for the next ${HORIZON} days.`)
 for (let d = Math.max(1, today - 1); d <= today + 7; d++) {
