@@ -287,7 +287,7 @@ export const BATCH_1: PromptDef[] = [
     1: ['Peyton Manning|Peyton', 'Eli Manning|Eli'],
     2: ['Archie Manning|Archie', 'Arch Manning|Arch'],
     4: ['Cooper Manning|Cooper'],
-  }),
+  }, { until: '2026-11-07' }), // retired: too few answers (Leo, Nov 7, 2026)
 
   prompt('route-run', 'Playbook', 'Name a pass route or run play', {
     1: ['Slant', 'Go Route|Go|Fly|Streak|Nine Route|9 Route', 'Post', 'Screen|Screen Pass', 'QB Sneak|Sneak|Quarterback Sneak'],

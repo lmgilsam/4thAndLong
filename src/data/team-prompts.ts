@@ -32,6 +32,21 @@ export const TEAM_PROMPTS: PromptDef[] = (index as TeamIndexEntry[]).map((e) => 
   team: e.team,
 }))
 
+/** Shape of public/teams/<TEAM>-<group>.json */
+export interface TeamAnswerFile {
+  tiers: Record<string, string[]>
+  /** Other roster spellings of the same player, keyed by display name */
+  aliases?: Record<string, string[]>
+}
+
+export function teamAnswers(data: TeamAnswerFile): AnswerDef[] {
+  const answers: AnswerDef[] = []
+  for (const [tier, names] of Object.entries(data.tiers)) {
+    for (const name of names) answers.push({ name, aliases: data.aliases?.[name] ?? [], tier: Number(tier) as TierId })
+  }
+  return answers
+}
+
 const loading = new Map<string, Promise<void>>()
 
 /** Fetches a team prompt's answer list (no-op for regular prompts or once loaded). */
@@ -42,14 +57,10 @@ export function ensureAnswers(p: PromptDef): Promise<void> {
     pending = fetch(`${import.meta.env.BASE_URL}${p.src}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        return r.json() as Promise<{ tiers: Record<string, string[]> }>
+        return r.json() as Promise<TeamAnswerFile>
       })
       .then((data) => {
-        const answers: AnswerDef[] = []
-        for (const [tier, names] of Object.entries(data.tiers)) {
-          for (const name of names) answers.push({ name, aliases: [], tier: Number(tier) as TierId })
-        }
-        p.answers = answers
+        p.answers = teamAnswers(data)
       })
       .catch((err) => {
         loading.delete(p.id)

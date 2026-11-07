@@ -114,8 +114,10 @@ def main():
     # season stats 1999+ (regular season)
     st = pd.read_csv(os.path.join(SRC, 'player_stats_season.csv'), low_memory=False)
     st = st[st.season_type == 'REG'][['player_id', 'player_display_name', 'season', 'recent_team', 'passing_yards', 'rushing_yards']]
-    s25 = pd.read_csv(os.path.join(SRC, 'stats_player_reg_2025.csv'), low_memory=False)
-    s25 = s25[['player_id', 'player_display_name', 'season', 'recent_team', 'passing_yards', 'rushing_yards']]
+    # newer seasons ship as stats_player_reg_<year>.csv (2025, 2026, ...)
+    recent = [pd.read_csv(f, low_memory=False) for f in sorted(glob.glob(os.path.join(SRC, 'stats_player_reg_*.csv')))]
+    recent = [r[r.season > st.season.max()] for r in recent]
+    s25 = pd.concat([r[['player_id', 'player_display_name', 'season', 'recent_team', 'passing_yards', 'rushing_yards']] for r in recent])
     st = pd.concat([st, s25]).fillna(0)
     st['fr'] = st.recent_team.map(lambda t: STAT_TEAM.get(t, t))
     team_yds = st.groupby(['player_id', 'fr'])[['passing_yards', 'rushing_yards']].sum()
@@ -128,13 +130,20 @@ def main():
         dd = dd[dd.season_type == 'REG']
     dd = dd.rename(columns={'recent_team': 'team'})
     dd = dd[[c for c in dcols if c in dd]]
-    d25 = pd.read_csv(os.path.join(SRC, 'stats_player_reg_2025.csv'), low_memory=False).rename(columns={'recent_team': 'team', 'def_tackles_solo': 'def_tackles'})
+    d25 = pd.concat(recent).rename(columns={'recent_team': 'team', 'def_tackles_solo': 'def_tackles'})
+    d25 = d25[d25.season > dd.season.max()]
     d25 = d25[[c for c in dcols if c in d25]]
     dd = pd.concat([dd, d25]).fillna(0)
     dd['fr'] = dd.team.map(lambda t: STAT_TEAM.get(t, t))
     dd['impact'] = dd.def_sacks * 0.6 + dd.def_interceptions * 0.9 + dd.def_fumbles_forced * 0.5 + dd.def_tackles / 45
     def_team = dd.groupby(['player_id', 'fr']).impact.sum()
     def_car = dd.groupby('player_id').impact.sum()
+
+    # display name per player id: the spelling used most seasons league-wide (ties: most recent)
+    nc = ros.dropna(subset=['gsis_id']).drop_duplicates(['gsis_id', 'full_name', 'season'])
+    nc = nc.groupby(['gsis_id', 'full_name']).season.agg(['count', 'max']).reset_index()
+    nc = nc.sort_values(['count', 'max'], ascending=False).drop_duplicates('gsis_id')
+    id_name = dict(zip(nc.gsis_id, nc.full_name))
 
     # career fame: weighted seasons across the whole league
     car_seasons = ros.groupby('full_name').apply(lambda d: (d.drop_duplicates('season').w).sum(), include_groups=False)
@@ -147,11 +156,27 @@ def main():
             if d.empty:
                 continue
             per = {}
+            spellings = {}
             legend_set = set(LEGENDS.get(key, {}).get(g, []))
             missing = legend_set - set(d.full_name)
             if missing:
                 print('legend not found', key, g, sorted(missing))
-            for name, grp in d.groupby('full_name'):
+            # One entry per player, not per spelling: rosters list the same player as
+            # "Kenneth Walker" and "Kenneth Walker III", or "Kenneth" then "Kenny" Gainwell.
+            # Rows without an id join the id their name belongs to (if only one).
+            d = d.copy()
+            ids_by_name = d.dropna(subset=['gsis_id']).groupby('full_name').gsis_id.unique()
+            d['pkey'] = [g_ if isinstance(g_, str) else (ids_by_name[n][0] if n in ids_by_name and len(ids_by_name[n]) == 1 else 'name:' + n)
+                         for g_, n in zip(d.gsis_id, d.full_name)]
+            for _, grp in d.groupby('pkey'):
+                # display name: the spelling used most seasons (ties go to the most recent)
+                counts = grp.drop_duplicates(['full_name', 'season']).groupby('full_name').season.agg(['count', 'max'])
+                name = counts.sort_values(['count', 'max'], ascending=False).index[0]
+                gid0 = next((x for x in grp.gsis_id if isinstance(x, str)), None)
+                if gid0 in id_name:
+                    name = id_name[gid0]
+                if name not in legend_set:
+                    name = next((n for n in counts.index if n in legend_set), name)
                 seasons = grp.sort_values('w', ascending=False).drop_duplicates('season')
                 score = seasons.w.sum()
                 gid = next((x for x in grp.gsis_id if isinstance(x, str)), None)
@@ -168,17 +193,30 @@ def main():
                         score += def_team.get((gid, key), 0) / 3 + def_car.get(gid, 0) / 12
                 if name in legend_set:
                     score += 12
-                score += 0.25 * car_seasons.get(name, 0)
+                score += 0.25 * max(car_seasons.get(n, 0) for n in counts.index)
                 per[name] = max(per.get(name, 0), score)
+                spellings.setdefault(name, set()).update(counts.index)
             ranked = sorted(per.items(), key=lambda kv: -kv[1])
             cuts = cfg['cuts']
             tiers = {1: [], 2: [], 3: [], 4: [], 5: []}
             for i, (name, _) in enumerate(ranked):
                 tier = 1 if i < cuts[0] else 2 if i < cuts[1] else 3 if i < cuts[2] else 4 if i < cuts[3] else 5
                 tiers[tier].append(name)
+            # Other roster spellings of a player are accepted too ("Cameron Wake" / "Derek Wake"),
+            # unless the spelling is another answer's name. Kept in a separate field so older
+            # cached app versions, which only read `tiers`, still work.
+            def base(n):
+                w = re.sub(r"[^a-z ]", '', n.lower()).split()
+                return ' '.join(x for x in w if x not in ('jr', 'sr', 'ii', 'iii', 'iv'))
+            taken = {base(n) for n in per}
+            aliases = {}
+            for name, alts in spellings.items():
+                extra = sorted({a for a in alts if base(a) != base(name) and base(a) not in taken})
+                if extra:
+                    aliases[name] = extra
             pid = f'team-{key.lower()}-{g}'
             with open(os.path.join(OUT, f'{key}-{g}.json'), 'w') as f:
-                json.dump({'id': pid, 'tiers': tiers}, f, separators=(',', ':'))
+                json.dump({'id': pid, 'tiers': tiers, **({'aliases': aliases} if aliases else {})}, f, separators=(',', ':'))
             index.append({'id': pid, 'team': key, 'group': g, 'teamName': team_name,
                           'text': f"Name a {cfg['label']} who has played for {label}", 'file': f'teams/{key}-{g}.json',
                           'count': len(ranked), 'preview': {t: tiers[t][:4] for t in tiers}})

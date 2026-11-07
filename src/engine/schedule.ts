@@ -72,11 +72,14 @@ interface Entry {
   p: PromptDef
   /** First drive this prompt may appear in, or null if it has no go-live date. */
   live: number | null
+  /** Last drive this prompt may appear in (retired prompts), or null for no end. */
+  until: number | null
   /** Order brand-new prompts debut in (earlier batches first). */
   debut: number
 }
 
 const liveFromDate = (p: PromptDef) => (p.from ? Math.max(1, dayIndex(p.from) + 1) : null)
+const untilDate = (p: PromptDef) => (p.until ? dayIndex(p.until) + 1 : null)
 
 /** General prompts: each batch keeps its own shuffled debut order (seed 0x5eed + 1000 x batch). */
 function generalEntries(batches: PromptDef[][]): Entry[] {
@@ -84,12 +87,13 @@ function generalEntries(batches: PromptDef[][]): Entry[] {
     shuffled(batch, 0x5eed + bi * 1000).map((p, i) => ({
       p,
       live: liveFromDate(p) ?? (bi < DATELESS_BATCHES ? 1 : null),
+      until: untilDate(p),
       debut: bi * 100_000 + i,
     })))
 }
 
 function teamEntries(): Entry[] {
-  return shuffled(TEAM_PROMPTS, 0x7ea).map((p, i) => ({ p, live: liveFromDate(p) ?? 1, debut: i }))
+  return shuffled(TEAM_PROMPTS, 0x7ea).map((p, i) => ({ p, live: liveFromDate(p) ?? 1, until: untilDate(p), debut: i }))
 }
 
 interface Lane { entries: Entry[]; days: PromptDef[][]; lastUsed: Map<string, number> }
@@ -110,7 +114,7 @@ function fill(l: Lane, upTo: number, countFor: (d: number) => number, fits: (pic
     const count = countFor(d)
     if (count === 0) { l.days.push([]); continue }
     const last = (p: PromptDef) => l.lastUsed.get(p.id)
-    const live = l.entries.filter((e) => e.live !== null && e.live <= d)
+    const live = l.entries.filter((e) => e.live !== null && e.live <= d && (e.until === null || d <= e.until))
     const fresh = live.filter((e) => last(e.p) === undefined).sort((a, b) => a.debut - b.debut).map((e) => e.p)
     const used = live.filter((e) => last(e.p) !== undefined).map((e) => e.p)
     const jitter = (p: PromptDef) => last(p)! + hash01(`${p.id}#${d}`) * COOLDOWN_DAYS
@@ -172,14 +176,17 @@ export function liveDriveOf(id: string, batches: PromptDef[][] = BATCHES): numbe
   return generalLane(batches).entries.find((e) => e.p.id === id)?.live
 }
 
-/** Random practice drive drawn only from prompts already live, so practice never spoils future days. */
+/** True if a general prompt can be scheduled on this drive (live and not retired). */
+export function isLiveOn(id: string, driveNo: number, batches: PromptDef[][] = BATCHES): boolean {
+  const e = generalLane(batches).entries.find((x) => x.p.id === id)
+  return !!e && e.live !== null && e.live <= driveNo && (e.until === null || driveNo <= e.until)
+}
+
+/** Random practice drive drawn only from prompts already live (and not retired), so practice never spoils future days. */
 export function randomPractice(): PromptDef[] {
   const today = driveNumber(todayKey())
   const seed = Math.floor(Math.random() * 1e9)
-  const live = PROMPTS.filter((p) => {
-    const from = liveDriveOf(p.id)
-    return from != null && from <= today
-  })
+  const live = PROMPTS.filter((p) => isLiveOn(p.id, today))
   const plays = shuffled(live, seed).slice(0, PLAYS_PER_DRIVE - TEAM_PLAYS_PER_DRIVE)
   const teams = shuffled(TEAM_PROMPTS, seed + 1)
   const picked = [teams[0], teams.find((t) => t.team !== teams[0].team)!]

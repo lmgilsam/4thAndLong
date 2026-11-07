@@ -24,6 +24,11 @@ export interface PromptDef {
    * change drives people have already played.
    */
   from?: string
+  /**
+   * Last day (YYYY-MM-DD, US Central) this prompt can appear. Use it to retire a
+   * prompt that has already been played: it stays in past drives but never comes back.
+   */
+  until?: string
   /** Team prompts load their answers from public/<src> on demand */
   src?: string
   team?: string
@@ -40,7 +45,7 @@ export function prompt(
   tag: string,
   text: string,
   tiers: TierBuckets,
-  opts: { ignore?: string[]; from?: string } = {},
+  opts: { ignore?: string[]; from?: string; until?: string } = {},
 ): PromptDef {
   const answers: AnswerDef[] = []
   for (const key of Object.keys(tiers)) {
@@ -50,7 +55,7 @@ export function prompt(
       answers.push({ name, aliases, tier })
     }
   }
-  return { id, tag, text, answers, ignore: opts.ignore, from: opts.from }
+  return { id, tag, text, answers, ignore: opts.ignore, from: opts.from, until: opts.until }
 }
 
 /** Tags a batch of new prompts with the day they go live: liveFrom('2026-11-12', BATCH_3) */

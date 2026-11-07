@@ -6,7 +6,7 @@
   "teamName": "Arizona Cardinals",
   "text": "Name a quarterback who has played for the Cardinals (any city)",
   "file": "teams/ARI-qb.json",
-  "count": 153
+  "count": 155
  },
  {
   "id": "team-ari-rb",
@@ -15,7 +15,7 @@
   "teamName": "Arizona Cardinals",
   "text": "Name a running back who has played for the Cardinals (any city)",
   "file": "teams/ARI-rb.json",
-  "count": 377
+  "count": 382
  },
  {
   "id": "team-ari-def",
@@ -24,7 +24,7 @@
   "teamName": "Arizona Cardinals",
   "text": "Name a defensive player who has played for the Cardinals (any city)",
   "file": "teams/ARI-def.json",
-  "count": 1049
+  "count": 1067
  },
  {
   "id": "team-atl-qb",
@@ -33,7 +33,7 @@
   "teamName": "Atlanta Falcons",
   "text": "Name a quarterback who has played for the Atlanta Falcons",
   "file": "teams/ATL-qb.json",
-  "count": 80
+  "count": 83
  },
  {
   "id": "team-atl-rb",
@@ -42,7 +42,7 @@
   "teamName": "Atlanta Falcons",
   "text": "Name a running back who has played for the Atlanta Falcons",
   "file": "teams/ATL-rb.json",
-  "count": 185
+  "count": 190
  },
  {
   "id": "team-atl-def",
@@ -51,7 +51,7 @@
   "teamName": "Atlanta Falcons",
   "text": "Name a defensive player who has played for the Atlanta Falcons",
   "file": "teams/ATL-def.json",
-  "count": 805
+  "count": 826
  },
  {
   "id": "team-bal-qb",
@@ -60,7 +60,7 @@
   "teamName": "Baltimore Ravens",
   "text": "Name a quarterback who has played for the Baltimore Ravens",
   "file": "teams/BAL-qb.json",
-  "count": 48
+  "count": 51
  },
  {
   "id": "team-bal-rb",
@@ -69,7 +69,7 @@
   "teamName": "Baltimore Ravens",
   "text": "Name a running back who has played for the Baltimore Ravens",
   "file": "teams/BAL-rb.json",
-  "count": 92
+  "count": 94
  },
  {
   "id": "team-bal-def",
@@ -78,7 +78,7 @@
   "teamName": "Baltimore Ravens",
   "text": "Name a defensive player who has played for the Baltimore Ravens",
   "file": "teams/BAL-def.json",
-  "count": 428
+  "count": 441
  },
  {
   "id": "team-buf-qb",
@@ -87,7 +87,7 @@
   "teamName": "Buffalo Bills",
   "text": "Name a quarterback who has played for the Buffalo Bills",
   "file": "teams/BUF-qb.json",
-  "count": 88
+  "count": 87
  },
  {
   "id": "team-buf-rb",
@@ -96,7 +96,7 @@
   "teamName": "Buffalo Bills",
   "text": "Name a running back who has played for the Buffalo Bills",
   "file": "teams/BUF-rb.json",
-  "count": 199
+  "count": 200
  },
  {
   "id": "team-buf-def",
@@ -105,7 +105,7 @@
   "teamName": "Buffalo Bills",
   "text": "Name a defensive player who has played for the Buffalo Bills",
   "file": "teams/BUF-def.json",
-  "count": 782
+  "count": 801
  },
  {
   "id": "team-car-qb",
@@ -114,7 +114,7 @@
   "teamName": "Carolina Panthers",
   "text": "Name a quarterback who has played for the Carolina Panthers",
   "file": "teams/CAR-qb.json",
-  "count": 52
+  "count": 54
  },
  {
   "id": "team-car-rb",
@@ -123,7 +123,7 @@
   "teamName": "Carolina Panthers",
   "text": "Name a running back who has played for the Carolina Panthers",
   "file": "teams/CAR-rb.json",
-  "count": 96
+  "count": 99
  },
  {
   "id": "team-car-def",
@@ -132,7 +132,7 @@
   "teamName": "Carolina Panthers",
   "text": "Name a defensive player who has played for the Carolina Panthers",
   "file": "teams/CAR-def.json",
-  "count": 551
+  "count": 575
  },
  {
   "id": "team-chi-qb",
@@ -141,7 +141,7 @@
   "teamName": "Chicago Bears",
   "text": "Name a quarterback who has played for the Chicago Bears",
   "file": "teams/CHI-qb.json",
-  "count": 119
+  "count": 120
  },
  {
   "id": "team-chi-rb",
@@ -150,7 +150,7 @@
   "teamName": "Chicago Bears",
   "text": "Name a running back who has played for the Chicago Bears",
   "file": "teams/CHI-rb.json",
-  "count": 302
+  "count": 304
  },
  {
   "id": "team-chi-def",
@@ -159,7 +159,7 @@
   "teamName": "Chicago Bears",
   "text": "Name a defensive player who has played for the Chicago Bears",
   "file": "teams/CHI-def.json",
-  "count": 873
+  "count": 901
  },
  {
   "id": "team-cin-qb",
@@ -168,7 +168,7 @@
   "teamName": "Cincinnati Bengals",
   "text": "Name a quarterback who has played for the Cincinnati Bengals",
   "file": "teams/CIN-qb.json",
-  "count": 77
+  "count": 76
  },
  {
   "id": "team-cin-rb",
@@ -177,7 +177,7 @@
   "teamName": "Cincinnati Bengals",
   "text": "Name a running back who has played for the Cincinnati Bengals",
   "file": "teams/CIN-rb.json",
-  "count": 134
+  "count": 136
  },
  {
   "id": "team-cin-def",
@@ -186,7 +186,7 @@
   "teamName": "Cincinnati Bengals",
   "text": "Name a defensive player who has played for the Cincinnati Bengals",
   "file": "teams/CIN-def.json",
-  "count": 662
+  "count": 675
  },
  {
   "id": "team-cle-qb",
@@ -195,7 +195,7 @@
   "teamName": "Cleveland Browns",
   "text": "Name a quarterback who has played for the Cleveland Browns",
   "file": "teams/CLE-qb.json",
-  "count": 114
+  "count": 115
  },
  {
   "id": "team-cle-rb",
@@ -204,7 +204,7 @@
   "teamName": "Cleveland Browns",
   "text": "Name a running back who has played for the Cleveland Browns",
   "file": "teams/CLE-rb.json",
-  "count": 233
+  "count": 236
  },
  {
   "id": "team-cle-def",
@@ -213,7 +213,7 @@
   "teamName": "Cleveland Browns",
   "text": "Name a defensive player who has played for the Cleveland Browns",
   "file": "teams/CLE-def.json",
-  "count": 899
+  "count": 925
  },
  {
   "id": "team-dal-qb",
@@ -222,7 +222,7 @@
   "teamName": "Dallas Cowboys",
   "text": "Name a quarterback who has played for the Dallas Cowboys",
   "file": "teams/DAL-qb.json",
-  "count": 71
+  "count": 73
  },
  {
   "id": "team-dal-rb",
@@ -231,7 +231,7 @@
   "teamName": "Dallas Cowboys",
   "text": "Name a running back who has played for the Dallas Cowboys",
   "file": "teams/DAL-rb.json",
-  "count": 162
+  "count": 164
  },
  {
   "id": "team-dal-def",
@@ -240,7 +240,7 @@
   "teamName": "Dallas Cowboys",
   "text": "Name a defensive player who has played for the Dallas Cowboys",
   "file": "teams/DAL-def.json",
-  "count": 721
+  "count": 743
  },
  {
   "id": "team-den-qb",
@@ -258,7 +258,7 @@
   "teamName": "Denver Broncos",
   "text": "Name a running back who has played for the Denver Broncos",
   "file": "teams/DEN-rb.json",
-  "count": 204
+  "count": 206
  },
  {
   "id": "team-den-def",
@@ -267,7 +267,7 @@
   "teamName": "Denver Broncos",
   "text": "Name a defensive player who has played for the Denver Broncos",
   "file": "teams/DEN-def.json",
-  "count": 788
+  "count": 799
  },
  {
   "id": "team-det-qb",
@@ -276,7 +276,7 @@
   "teamName": "Detroit Lions",
   "text": "Name a quarterback who has played for the Detroit Lions",
   "file": "teams/DET-qb.json",
-  "count": 126
+  "count": 128
  },
  {
   "id": "team-det-rb",
@@ -285,7 +285,7 @@
   "teamName": "Detroit Lions",
   "text": "Name a running back who has played for the Detroit Lions",
   "file": "teams/DET-rb.json",
-  "count": 324
+  "count": 326
  },
  {
   "id": "team-det-def",
@@ -294,7 +294,7 @@
   "teamName": "Detroit Lions",
   "text": "Name a defensive player who has played for the Detroit Lions",
   "file": "teams/DET-def.json",
-  "count": 968
+  "count": 993
  },
  {
   "id": "team-gb-qb",
@@ -303,7 +303,7 @@
   "teamName": "Green Bay Packers",
   "text": "Name a quarterback who has played for the Green Bay Packers",
   "file": "teams/GB-qb.json",
-  "count": 113
+  "count": 115
  },
  {
   "id": "team-gb-rb",
@@ -312,7 +312,7 @@
   "teamName": "Green Bay Packers",
   "text": "Name a running back who has played for the Green Bay Packers",
   "file": "teams/GB-rb.json",
-  "count": 334
+  "count": 336
  },
  {
   "id": "team-gb-def",
@@ -321,7 +321,7 @@
   "teamName": "Green Bay Packers",
   "text": "Name a defensive player who has played for the Green Bay Packers",
   "file": "teams/GB-def.json",
-  "count": 924
+  "count": 943
  },
  {
   "id": "team-hou-qb",
@@ -330,7 +330,7 @@
   "teamName": "Houston Texans",
   "text": "Name a quarterback who has played for the Houston Texans",
   "file": "teams/HOU-qb.json",
-  "count": 44
+  "count": 45
  },
  {
   "id": "team-hou-rb",
@@ -339,7 +339,7 @@
   "teamName": "Houston Texans",
   "text": "Name a running back who has played for the Houston Texans",
   "file": "teams/HOU-rb.json",
-  "count": 88
+  "count": 93
  },
  {
   "id": "team-hou-def",
@@ -348,7 +348,7 @@
   "teamName": "Houston Texans",
   "text": "Name a defensive player who has played for the Houston Texans",
   "file": "teams/HOU-def.json",
-  "count": 447
+  "count": 466
  },
  {
   "id": "team-ind-qb",
@@ -366,7 +366,7 @@
   "teamName": "Indianapolis Colts",
   "text": "Name a running back who has played for the Colts (Baltimore or Indianapolis)",
   "file": "teams/IND-rb.json",
-  "count": 216
+  "count": 219
  },
  {
   "id": "team-ind-def",
@@ -375,7 +375,7 @@
   "teamName": "Indianapolis Colts",
   "text": "Name a defensive player who has played for the Colts (Baltimore or Indianapolis)",
   "file": "teams/IND-def.json",
-  "count": 915
+  "count": 935
  },
  {
   "id": "team-jax-qb",
@@ -384,7 +384,7 @@
   "teamName": "Jacksonville Jaguars",
   "text": "Name a quarterback who has played for the Jacksonville Jaguars",
   "file": "teams/JAX-qb.json",
-  "count": 53
+  "count": 55
  },
  {
   "id": "team-jax-rb",
@@ -393,7 +393,7 @@
   "teamName": "Jacksonville Jaguars",
   "text": "Name a running back who has played for the Jacksonville Jaguars",
   "file": "teams/JAX-rb.json",
-  "count": 114
+  "count": 117
  },
  {
   "id": "team-jax-def",
@@ -402,7 +402,7 @@
   "teamName": "Jacksonville Jaguars",
   "text": "Name a defensive player who has played for the Jacksonville Jaguars",
   "file": "teams/JAX-def.json",
-  "count": 588
+  "count": 604
  },
  {
   "id": "team-kc-qb",
@@ -411,7 +411,7 @@
   "teamName": "Kansas City Chiefs",
   "text": "Name a quarterback who has played for the Kansas City Chiefs",
   "file": "teams/KC-qb.json",
-  "count": 86
+  "count": 88
  },
  {
   "id": "team-kc-rb",
@@ -420,7 +420,7 @@
   "teamName": "Kansas City Chiefs",
   "text": "Name a running back who has played for the Kansas City Chiefs",
   "file": "teams/KC-rb.json",
-  "count": 181
+  "count": 186
  },
  {
   "id": "team-kc-def",
@@ -429,7 +429,7 @@
   "teamName": "Kansas City Chiefs",
   "text": "Name a defensive player who has played for the Kansas City Chiefs",
   "file": "teams/KC-def.json",
-  "count": 780
+  "count": 796
  },
  {
   "id": "team-lv-qb",
@@ -438,7 +438,7 @@
   "teamName": "Las Vegas Raiders",
   "text": "Name a quarterback who has played for the Raiders (Oakland, LA or Las Vegas)",
   "file": "teams/LV-qb.json",
-  "count": 89
+  "count": 91
  },
  {
   "id": "team-lv-rb",
@@ -447,7 +447,7 @@
   "teamName": "Las Vegas Raiders",
   "text": "Name a running back who has played for the Raiders (Oakland, LA or Las Vegas)",
   "file": "teams/LV-rb.json",
-  "count": 185
+  "count": 189
  },
  {
   "id": "team-lv-def",
@@ -456,7 +456,7 @@
   "teamName": "Las Vegas Raiders",
   "text": "Name a defensive player who has played for the Raiders (Oakland, LA or Las Vegas)",
   "file": "teams/LV-def.json",
-  "count": 835
+  "count": 853
  },
  {
   "id": "team-lac-qb",
@@ -465,7 +465,7 @@
   "teamName": "Los Angeles Chargers",
   "text": "Name a quarterback who has played for the Chargers (San Diego or LA)",
   "file": "teams/LAC-qb.json",
-  "count": 88
+  "count": 89
  },
  {
   "id": "team-lac-rb",
@@ -474,7 +474,7 @@
   "teamName": "Los Angeles Chargers",
   "text": "Name a running back who has played for the Chargers (San Diego or LA)",
   "file": "teams/LAC-rb.json",
-  "count": 182
+  "count": 184
  },
  {
   "id": "team-lac-def",
@@ -483,7 +483,7 @@
   "teamName": "Los Angeles Chargers",
   "text": "Name a defensive player who has played for the Chargers (San Diego or LA)",
   "file": "teams/LAC-def.json",
-  "count": 841
+  "count": 854
  },
  {
   "id": "team-lar-qb",
@@ -492,7 +492,7 @@
   "teamName": "Los Angeles Rams",
   "text": "Name a quarterback who has played for the Rams (any city)",
   "file": "teams/LAR-qb.json",
-  "count": 116
+  "count": 118
  },
  {
   "id": "team-lar-rb",
@@ -501,7 +501,7 @@
   "teamName": "Los Angeles Rams",
   "text": "Name a running back who has played for the Rams (any city)",
   "file": "teams/LAR-rb.json",
-  "count": 269
+  "count": 270
  },
  {
   "id": "team-lar-def",
@@ -510,7 +510,7 @@
   "teamName": "Los Angeles Rams",
   "text": "Name a defensive player who has played for the Rams (any city)",
   "file": "teams/LAR-def.json",
-  "count": 869
+  "count": 885
  },
  {
   "id": "team-mia-qb",
@@ -519,7 +519,7 @@
   "teamName": "Miami Dolphins",
   "text": "Name a quarterback who has played for the Miami Dolphins",
   "file": "teams/MIA-qb.json",
-  "count": 89
+  "count": 92
  },
  {
   "id": "team-mia-rb",
@@ -528,7 +528,7 @@
   "teamName": "Miami Dolphins",
   "text": "Name a running back who has played for the Miami Dolphins",
   "file": "teams/MIA-rb.json",
-  "count": 194
+  "count": 198
  },
  {
   "id": "team-mia-def",
@@ -537,7 +537,7 @@
   "teamName": "Miami Dolphins",
   "text": "Name a defensive player who has played for the Miami Dolphins",
   "file": "teams/MIA-def.json",
-  "count": 818
+  "count": 849
  },
  {
   "id": "team-min-qb",
@@ -546,7 +546,7 @@
   "teamName": "Minnesota Vikings",
   "text": "Name a quarterback who has played for the Minnesota Vikings",
   "file": "teams/MIN-qb.json",
-  "count": 86
+  "count": 87
  },
  {
   "id": "team-min-rb",
@@ -555,7 +555,7 @@
   "teamName": "Minnesota Vikings",
   "text": "Name a running back who has played for the Minnesota Vikings",
   "file": "teams/MIN-rb.json",
-  "count": 160
+  "count": 162
  },
  {
   "id": "team-min-def",
@@ -564,7 +564,7 @@
   "teamName": "Minnesota Vikings",
   "text": "Name a defensive player who has played for the Minnesota Vikings",
   "file": "teams/MIN-def.json",
-  "count": 714
+  "count": 735
  },
  {
   "id": "team-ne-qb",
@@ -573,7 +573,7 @@
   "teamName": "New England Patriots",
   "text": "Name a quarterback who has played for the Patriots (Boston or New England)",
   "file": "teams/NE-qb.json",
-  "count": 72
+  "count": 73
  },
  {
   "id": "team-ne-rb",
@@ -582,7 +582,7 @@
   "teamName": "New England Patriots",
   "text": "Name a running back who has played for the Patriots (Boston or New England)",
   "file": "teams/NE-rb.json",
-  "count": 190
+  "count": 192
  },
  {
   "id": "team-ne-def",
@@ -591,7 +591,7 @@
   "teamName": "New England Patriots",
   "text": "Name a defensive player who has played for the Patriots (Boston or New England)",
   "file": "teams/NE-def.json",
-  "count": 792
+  "count": 814
  },
  {
   "id": "team-no-qb",
@@ -600,7 +600,7 @@
   "teamName": "New Orleans Saints",
   "text": "Name a quarterback who has played for the New Orleans Saints",
   "file": "teams/NO-qb.json",
-  "count": 71
+  "count": 72
  },
  {
   "id": "team-no-rb",
@@ -609,7 +609,7 @@
   "teamName": "New Orleans Saints",
   "text": "Name a running back who has played for the New Orleans Saints",
   "file": "teams/NO-rb.json",
-  "count": 201
+  "count": 207
  },
  {
   "id": "team-no-def",
@@ -618,7 +618,7 @@
   "teamName": "New Orleans Saints",
   "text": "Name a defensive player who has played for the New Orleans Saints",
   "file": "teams/NO-def.json",
-  "count": 784
+  "count": 798
  },
  {
   "id": "team-nyg-qb",
@@ -627,7 +627,7 @@
   "teamName": "New York Giants",
   "text": "Name a quarterback who has played for the New York Giants",
   "file": "teams/NYG-qb.json",
-  "count": 119
+  "count": 121
  },
  {
   "id": "team-nyg-rb",
@@ -636,7 +636,7 @@
   "teamName": "New York Giants",
   "text": "Name a running back who has played for the New York Giants",
   "file": "teams/NYG-rb.json",
-  "count": 319
+  "count": 324
  },
  {
   "id": "team-nyg-def",
@@ -645,7 +645,7 @@
   "teamName": "New York Giants",
   "text": "Name a defensive player who has played for the New York Giants",
   "file": "teams/NYG-def.json",
-  "count": 990
+  "count": 1009
  },
  {
   "id": "team-nyj-qb",
@@ -654,7 +654,7 @@
   "teamName": "New York Jets",
   "text": "Name a quarterback who has played for the New York Jets",
   "file": "teams/NYJ-qb.json",
-  "count": 106
+  "count": 109
  },
  {
   "id": "team-nyj-rb",
@@ -663,7 +663,7 @@
   "teamName": "New York Jets",
   "text": "Name a running back who has played for the New York Jets",
   "file": "teams/NYJ-rb.json",
-  "count": 202
+  "count": 204
  },
  {
   "id": "team-nyj-def",
@@ -672,7 +672,7 @@
   "teamName": "New York Jets",
   "text": "Name a defensive player who has played for the New York Jets",
   "file": "teams/NYJ-def.json",
-  "count": 834
+  "count": 852
  },
  {
   "id": "team-phi-qb",
@@ -681,7 +681,7 @@
   "teamName": "Philadelphia Eagles",
   "text": "Name a quarterback who has played for the Philadelphia Eagles",
   "file": "teams/PHI-qb.json",
-  "count": 111
+  "count": 113
  },
  {
   "id": "team-phi-rb",
@@ -690,7 +690,7 @@
   "teamName": "Philadelphia Eagles",
   "text": "Name a running back who has played for the Philadelphia Eagles",
   "file": "teams/PHI-rb.json",
-  "count": 313
+  "count": 318
  },
  {
   "id": "team-phi-def",
@@ -699,7 +699,7 @@
   "teamName": "Philadelphia Eagles",
   "text": "Name a defensive player who has played for the Philadelphia Eagles",
   "file": "teams/PHI-def.json",
-  "count": 899
+  "count": 918
  },
  {
   "id": "team-pit-qb",
@@ -717,7 +717,7 @@
   "teamName": "Pittsburgh Steelers",
   "text": "Name a running back who has played for the Pittsburgh Steelers",
   "file": "teams/PIT-rb.json",
-  "count": 322
+  "count": 327
  },
  {
   "id": "team-pit-def",
@@ -726,7 +726,7 @@
   "teamName": "Pittsburgh Steelers",
   "text": "Name a defensive player who has played for the Pittsburgh Steelers",
   "file": "teams/PIT-def.json",
-  "count": 799
+  "count": 808
  },
  {
   "id": "team-sf-qb",
@@ -744,7 +744,7 @@
   "teamName": "San Francisco 49ers",
   "text": "Name a running back who has played for the San Francisco 49ers",
   "file": "teams/SF-rb.json",
-  "count": 225
+  "count": 226
  },
  {
   "id": "team-sf-def",
@@ -753,7 +753,7 @@
   "teamName": "San Francisco 49ers",
   "text": "Name a defensive player who has played for the San Francisco 49ers",
   "file": "teams/SF-def.json",
-  "count": 861
+  "count": 881
  },
  {
   "id": "team-sea-qb",
@@ -762,7 +762,7 @@
   "teamName": "Seattle Seahawks",
   "text": "Name a quarterback who has played for the Seattle Seahawks",
   "file": "teams/SEA-qb.json",
-  "count": 61
+  "count": 62
  },
  {
   "id": "team-sea-rb",
@@ -771,7 +771,7 @@
   "teamName": "Seattle Seahawks",
   "text": "Name a running back who has played for the Seattle Seahawks",
   "file": "teams/SEA-rb.json",
-  "count": 158
+  "count": 162
  },
  {
   "id": "team-sea-def",
@@ -780,7 +780,7 @@
   "teamName": "Seattle Seahawks",
   "text": "Name a defensive player who has played for the Seattle Seahawks",
   "file": "teams/SEA-def.json",
-  "count": 705
+  "count": 718
  },
  {
   "id": "team-tb-qb",
@@ -789,7 +789,7 @@
   "teamName": "Tampa Bay Buccaneers",
   "text": "Name a quarterback who has played for the Tampa Bay Buccaneers",
   "file": "teams/TB-qb.json",
-  "count": 78
+  "count": 81
  },
  {
   "id": "team-tb-rb",
@@ -798,7 +798,7 @@
   "teamName": "Tampa Bay Buccaneers",
   "text": "Name a running back who has played for the Tampa Bay Buccaneers",
   "file": "teams/TB-rb.json",
-  "count": 173
+  "count": 175
  },
  {
   "id": "team-tb-def",
@@ -807,7 +807,7 @@
   "teamName": "Tampa Bay Buccaneers",
   "text": "Name a defensive player who has played for the Tampa Bay Buccaneers",
   "file": "teams/TB-def.json",
-  "count": 702
+  "count": 717
  },
  {
   "id": "team-ten-qb",
@@ -816,7 +816,7 @@
   "teamName": "Tennessee Titans",
   "text": "Name a quarterback who has played for the Titans or Houston Oilers",
   "file": "teams/TEN-qb.json",
-  "count": 82
+  "count": 84
  },
  {
   "id": "team-ten-rb",
@@ -825,7 +825,7 @@
   "teamName": "Tennessee Titans",
   "text": "Name a running back who has played for the Titans or Houston Oilers",
   "file": "teams/TEN-rb.json",
-  "count": 178
+  "count": 180
  },
  {
   "id": "team-ten-def",
@@ -834,7 +834,7 @@
   "teamName": "Tennessee Titans",
   "text": "Name a defensive player who has played for the Titans or Houston Oilers",
   "file": "teams/TEN-def.json",
-  "count": 816
+  "count": 845
  },
  {
   "id": "team-was-qb",
@@ -843,7 +843,7 @@
   "teamName": "Washington Commanders",
   "text": "Name a quarterback who has played for Washington (Commanders / Redskins)",
   "file": "teams/WAS-qb.json",
-  "count": 127
+  "count": 128
  },
  {
   "id": "team-was-rb",
@@ -852,7 +852,7 @@
   "teamName": "Washington Commanders",
   "text": "Name a running back who has played for Washington (Commanders / Redskins)",
   "file": "teams/WAS-rb.json",
-  "count": 316
+  "count": 319
  },
  {
   "id": "team-was-def",
@@ -861,6 +861,6 @@
   "teamName": "Washington Commanders",
   "text": "Name a defensive player who has played for Washington (Commanders / Redskins)",
   "file": "teams/WAS-def.json",
-  "count": 978
+  "count": 1000
  }
 ]
