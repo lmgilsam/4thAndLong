@@ -58,3 +58,43 @@ LEGENDS = {
  'WAS': {'qb': ['Sammy Baugh', 'Joe Theismann', 'Sonny Jurgensen', 'Doug Williams', 'Mark Rypien'], 'rb': ['John Riggins', 'Larry Brown', 'Earnest Byner', 'George Rogers'],
          'def': ['Darrell Green', 'Ken Houston', 'Dave Butz', 'Dexter Manley', 'Charles Mann', 'Chris Hanburger', 'Sam Huff', 'Pat Fischer']},
 }
+
+# Wide receivers and tight ends (the "rec" group, added Nov 6, 2026). Pre-1999
+# stars mostly; a few early two-way ends (Hutson, Lavelli, Speedie) are listed
+# at other positions in the rosters, so legends count at any position they held.
+REC_LEGENDS = {
+ 'ARI': ['Roy Green', 'Jackie Smith', 'Pat Tilley', 'Mel Gray'],
+ 'ATL': ['Alfred Jenkins', 'Andre Rison', 'Terance Mathis', 'Wally Francis', 'Junior Miller'],
+ 'BAL': ['Michael Jackson', 'Derrick Alexander'],
+ 'BUF': ['Andre Reed', 'James Lofton', 'Elbert Dubenion', 'Frank Lewis', 'Jerry Butler', 'Pete Metzelaars'],
+ 'CAR': ['Muhsin Muhammad', 'Wesley Walls', 'Mark Carrier'],
+ 'CHI': ['Mike Ditka', 'Harlon Hill', 'Johnny Morris', 'Dick Gordon', 'Willie Gault', 'Dennis McKinnon', 'Curtis Conway', 'Ken Kavanaugh'],
+ 'CIN': ['Isaac Curtis', 'Cris Collinsworth', 'Eddie Brown', 'Dan Ross', 'Tim McGee', 'Rodney Holman', 'Carl Pickens', 'Bob Trumpy'],
+ 'CLE': ['Ozzie Newsome', 'Paul Warfield', 'Gary Collins', 'Dante Lavelli', 'Mac Speedie', 'Webster Slaughter', 'Reggie Langhorne', 'Brian Brennan'],
+ 'DAL': ['Michael Irvin', 'Drew Pearson', 'Bob Hayes', 'Tony Hill', 'Jay Novacek', 'Billy Joe DuPree', 'Lance Rentzel', 'Doug Cosbie'],
+ 'DEN': ['Shannon Sharpe', 'Lionel Taylor', 'Haven Moses', 'Riley Odoms', 'Vance Johnson', 'Mark Jackson', 'Ed McCaffrey'],
+ 'DET': ['Herman Moore', 'Charlie Sanders', 'Brett Perriman', 'Leonard Thompson', 'Gail Cogdill', 'Leon Hart'],
+ 'GB':  ['Don Hutson', 'James Lofton', 'Sterling Sharpe', 'Boyd Dowler', 'Max McGee', 'Carroll Dale', 'Paul Coffman', 'Antonio Freeman', 'Robert Brooks'],
+ 'HOU': [],
+ 'IND': ['Raymond Berry', 'John Mackey', 'Jimmy Orr', 'Roger Carr', 'Bill Brooks'],
+ 'JAX': ['Jimmy Smith', 'Keenan McCardell', 'Pete Mitchell'],
+ 'KC':  ['Otis Taylor', 'Fred Arbanas', 'Stephone Paige', 'Carlos Carson', 'Henry Marshall', 'Chris Burford'],
+ 'LV':  ['Fred Biletnikoff', 'Cliff Branch', 'Dave Casper', 'Todd Christensen', 'Art Powell', 'Warren Wells', 'Raymond Chester'],
+ 'LAC': ['Lance Alworth', 'Kellen Winslow', 'Charlie Joiner', 'John Jefferson', 'Wes Chandler', 'Gary Garrison', 'Anthony Miller'],
+ 'LAR': ['Crazy Legs Hirsch', 'Tom Fears', 'Henry Ellard', 'Jack Snow', 'Flipper Anderson'],
+ 'MIA': ['Mark Clayton', 'Mark Duper', 'Paul Warfield', 'Nat Moore', 'O.J. McDuffie', 'Jim Jensen'],
+ 'MIN': ['Cris Carter', 'Ahmad Rashad', 'Sammy White', 'Anthony Carter', 'Steve Jordan', 'Jake Reed'],
+ 'NE':  ['Stanley Morgan', 'Irving Fryar', 'Russ Francis', 'Ben Coates', 'Gino Cappelletti', 'Darryl Stingley'],
+ 'NO':  ['Eric Martin', 'Danny Abramowicz', 'Hoby Brenner', 'Quinn Early'],
+ 'NYG': ['Mark Bavaro', 'Del Shofner', 'Homer Jones', 'Kyle Rote', 'Lionel Manuel', 'Phil McConkey', 'Bob Tucker'],
+ 'NYJ': ['Don Maynard', 'Wesley Walker', 'Al Toon', 'George Sauer', 'Mickey Shuler', 'Rob Moore', 'Jerome Barkum'],
+ 'PHI': ['Harold Carmichael', 'Pete Retzlaff', 'Tommy McDonald', 'Mike Quick', 'Pete Pihos', 'Keith Jackson', 'Fred Barnett'],
+ 'PIT': ['Lynn Swann', 'John Stallworth', 'Louis Lipps', 'Yancey Thigpen', 'Elbie Nickel', 'Buddy Dial'],
+ 'SF':  ['Jerry Rice', 'Dwight Clark', 'Brent Jones', 'Gene Washington', 'John Taylor', 'Freddie Solomon', 'R.C. Owens', 'Billy Wilson'],
+ 'SEA': ['Steve Largent', 'Brian Blades', 'Joey Galloway', 'Daryl Turner'],
+ 'TB':  ['Kevin House', 'Jimmie Giles', 'Mark Carrier', 'Lawrence Dawsey'],
+ 'TEN': ['Charley Hennigan', 'Ernest Givins', 'Drew Hill', 'Haywood Jeffires', 'Ken Burrough', 'Bill Groman', 'Frank Wycheck'],
+ 'WAS': ['Art Monk', 'Charley Taylor', 'Bobby Mitchell', 'Gary Clark', 'Ricky Sanders', 'Jerry Smith', 'Charlie Brown'],
+}
+for _team, _names in REC_LEGENDS.items():
+    LEGENDS.setdefault(_team, {})['rec'] = _names

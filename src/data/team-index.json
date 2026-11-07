@@ -862,5 +862,325 @@
   "text": "Name a defensive player who has played for Washington (Commanders / Redskins)",
   "file": "teams/WAS-def.json",
   "count": 978
+ },
+ {
+  "id": "team-ari-rec",
+  "team": "ARI",
+  "group": "rec",
+  "teamName": "Arizona Cardinals",
+  "text": "Name a wide receiver or tight end who has played for the Cardinals (any city)",
+  "file": "teams/ARI-rec.json",
+  "count": 366,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-atl-rec",
+  "team": "ATL",
+  "group": "rec",
+  "teamName": "Atlanta Falcons",
+  "text": "Name a wide receiver or tight end who has played for the Atlanta Falcons",
+  "file": "teams/ATL-rec.json",
+  "count": 315,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-bal-rec",
+  "team": "BAL",
+  "group": "rec",
+  "teamName": "Baltimore Ravens",
+  "text": "Name a wide receiver or tight end who has played for the Baltimore Ravens",
+  "file": "teams/BAL-rec.json",
+  "count": 203,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-buf-rec",
+  "team": "BUF",
+  "group": "rec",
+  "teamName": "Buffalo Bills",
+  "text": "Name a wide receiver or tight end who has played for the Buffalo Bills",
+  "file": "teams/BUF-rec.json",
+  "count": 318,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-car-rec",
+  "team": "CAR",
+  "group": "rec",
+  "teamName": "Carolina Panthers",
+  "text": "Name a wide receiver or tight end who has played for the Carolina Panthers",
+  "file": "teams/CAR-rec.json",
+  "count": 217,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-chi-rec",
+  "team": "CHI",
+  "group": "rec",
+  "teamName": "Chicago Bears",
+  "text": "Name a wide receiver or tight end who has played for the Chicago Bears",
+  "file": "teams/CHI-rec.json",
+  "count": 363,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-cin-rec",
+  "team": "CIN",
+  "group": "rec",
+  "teamName": "Cincinnati Bengals",
+  "text": "Name a wide receiver or tight end who has played for the Cincinnati Bengals",
+  "file": "teams/CIN-rec.json",
+  "count": 241,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-cle-rec",
+  "team": "CLE",
+  "group": "rec",
+  "teamName": "Cleveland Browns",
+  "text": "Name a wide receiver or tight end who has played for the Cleveland Browns",
+  "file": "teams/CLE-rec.json",
+  "count": 345,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-dal-rec",
+  "team": "DAL",
+  "group": "rec",
+  "teamName": "Dallas Cowboys",
+  "text": "Name a wide receiver or tight end who has played for the Dallas Cowboys",
+  "file": "teams/DAL-rec.json",
+  "count": 283,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-den-rec",
+  "team": "DEN",
+  "group": "rec",
+  "teamName": "Denver Broncos",
+  "text": "Name a wide receiver or tight end who has played for the Denver Broncos",
+  "file": "teams/DEN-rec.json",
+  "count": 299,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-det-rec",
+  "team": "DET",
+  "group": "rec",
+  "teamName": "Detroit Lions",
+  "text": "Name a wide receiver or tight end who has played for the Detroit Lions",
+  "file": "teams/DET-rec.json",
+  "count": 403,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-gb-rec",
+  "team": "GB",
+  "group": "rec",
+  "teamName": "Green Bay Packers",
+  "text": "Name a wide receiver or tight end who has played for the Green Bay Packers",
+  "file": "teams/GB-rec.json",
+  "count": 371,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-hou-rec",
+  "team": "HOU",
+  "group": "rec",
+  "teamName": "Houston Texans",
+  "text": "Name a wide receiver or tight end who has played for the Houston Texans",
+  "file": "teams/HOU-rec.json",
+  "count": 176,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-ind-rec",
+  "team": "IND",
+  "group": "rec",
+  "teamName": "Indianapolis Colts",
+  "text": "Name a wide receiver or tight end who has played for the Colts (Baltimore or Indianapolis)",
+  "file": "teams/IND-rec.json",
+  "count": 327,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-jax-rec",
+  "team": "JAX",
+  "group": "rec",
+  "teamName": "Jacksonville Jaguars",
+  "text": "Name a wide receiver or tight end who has played for the Jacksonville Jaguars",
+  "file": "teams/JAX-rec.json",
+  "count": 245,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-kc-rec",
+  "team": "KC",
+  "group": "rec",
+  "teamName": "Kansas City Chiefs",
+  "text": "Name a wide receiver or tight end who has played for the Kansas City Chiefs",
+  "file": "teams/KC-rec.json",
+  "count": 322,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-lv-rec",
+  "team": "LV",
+  "group": "rec",
+  "teamName": "Las Vegas Raiders",
+  "text": "Name a wide receiver or tight end who has played for the Raiders (Oakland, LA or Las Vegas)",
+  "file": "teams/LV-rec.json",
+  "count": 284,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-lac-rec",
+  "team": "LAC",
+  "group": "rec",
+  "teamName": "Los Angeles Chargers",
+  "text": "Name a wide receiver or tight end who has played for the Chargers (San Diego or LA)",
+  "file": "teams/LAC-rec.json",
+  "count": 331,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-lar-rec",
+  "team": "LAR",
+  "group": "rec",
+  "teamName": "Los Angeles Rams",
+  "text": "Name a wide receiver or tight end who has played for the Rams (any city)",
+  "file": "teams/LAR-rec.json",
+  "count": 324,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-mia-rec",
+  "team": "MIA",
+  "group": "rec",
+  "teamName": "Miami Dolphins",
+  "text": "Name a wide receiver or tight end who has played for the Miami Dolphins",
+  "file": "teams/MIA-rec.json",
+  "count": 308,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-min-rec",
+  "team": "MIN",
+  "group": "rec",
+  "teamName": "Minnesota Vikings",
+  "text": "Name a wide receiver or tight end who has played for the Minnesota Vikings",
+  "file": "teams/MIN-rec.json",
+  "count": 273,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-ne-rec",
+  "team": "NE",
+  "group": "rec",
+  "teamName": "New England Patriots",
+  "text": "Name a wide receiver or tight end who has played for the Patriots (Boston or New England)",
+  "file": "teams/NE-rec.json",
+  "count": 349,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-no-rec",
+  "team": "NO",
+  "group": "rec",
+  "teamName": "New Orleans Saints",
+  "text": "Name a wide receiver or tight end who has played for the New Orleans Saints",
+  "file": "teams/NO-rec.json",
+  "count": 320,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-nyg-rec",
+  "team": "NYG",
+  "group": "rec",
+  "teamName": "New York Giants",
+  "text": "Name a wide receiver or tight end who has played for the New York Giants",
+  "file": "teams/NYG-rec.json",
+  "count": 372,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-nyj-rec",
+  "team": "NYJ",
+  "group": "rec",
+  "teamName": "New York Jets",
+  "text": "Name a wide receiver or tight end who has played for the New York Jets",
+  "file": "teams/NYJ-rec.json",
+  "count": 320,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-phi-rec",
+  "team": "PHI",
+  "group": "rec",
+  "teamName": "Philadelphia Eagles",
+  "text": "Name a wide receiver or tight end who has played for the Philadelphia Eagles",
+  "file": "teams/PHI-rec.json",
+  "count": 359,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-pit-rec",
+  "team": "PIT",
+  "group": "rec",
+  "teamName": "Pittsburgh Steelers",
+  "text": "Name a wide receiver or tight end who has played for the Pittsburgh Steelers",
+  "file": "teams/PIT-rec.json",
+  "count": 335,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-sf-rec",
+  "team": "SF",
+  "group": "rec",
+  "teamName": "San Francisco 49ers",
+  "text": "Name a wide receiver or tight end who has played for the San Francisco 49ers",
+  "file": "teams/SF-rec.json",
+  "count": 295,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-sea-rec",
+  "team": "SEA",
+  "group": "rec",
+  "teamName": "Seattle Seahawks",
+  "text": "Name a wide receiver or tight end who has played for the Seattle Seahawks",
+  "file": "teams/SEA-rec.json",
+  "count": 274,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-tb-rec",
+  "team": "TB",
+  "group": "rec",
+  "teamName": "Tampa Bay Buccaneers",
+  "text": "Name a wide receiver or tight end who has played for the Tampa Bay Buccaneers",
+  "file": "teams/TB-rec.json",
+  "count": 296,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-ten-rec",
+  "team": "TEN",
+  "group": "rec",
+  "teamName": "Tennessee Titans",
+  "text": "Name a wide receiver or tight end who has played for the Titans or Houston Oilers",
+  "file": "teams/TEN-rec.json",
+  "count": 313,
+  "from": "2026-11-08"
+ },
+ {
+  "id": "team-was-rec",
+  "team": "WAS",
+  "group": "rec",
+  "teamName": "Washington Commanders",
+  "text": "Name a wide receiver or tight end who has played for Washington (Commanders / Redskins)",
+  "file": "teams/WAS-rec.json",
+  "count": 361,
+  "from": "2026-11-08"
  }
 ]

@@ -1,18 +1,20 @@
 import type { AnswerDef, PromptDef, TierId } from './types'
 import index from './team-index.json'
 
-// "Name a QB / RB / defensive player who has played for <team>" prompts.
+// "Name a QB / RB / defensive player / WR or TE who has played for <team>" prompts.
 // Built by scripts/build_team_data.py from nflverse roster data. The answer
 // lists are large, so each one lives in public/teams/ and loads on demand.
 
 interface TeamIndexEntry {
   id: string
   team: string
-  group: 'qb' | 'rb' | 'def'
+  group: 'qb' | 'rb' | 'def' | 'rec'
   teamName: string
   text: string
   file: string
   count: number
+  /** Groups added after launch go live on this date (YYYY-MM-DD, US Central) */
+  from?: string
 }
 
 const SHORT: Record<string, string> = {
@@ -30,6 +32,7 @@ export const TEAM_PROMPTS: PromptDef[] = (index as TeamIndexEntry[]).map((e) => 
   answers: [],
   src: e.file,
   team: e.team,
+  from: e.from,
 }))
 
 const loading = new Map<string, Promise<void>>()

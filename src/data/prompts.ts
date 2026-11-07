@@ -4,6 +4,7 @@ import { BATCH_2 } from './prompts-batch2'
 import { BATCH_3 } from './prompts-batch3'
 import { BATCH_4 } from './prompts-batch4'
 import { BATCH_5 } from './prompts-batch5'
+import { BATCH_6 } from './prompts-batch6'
 
 // Every prompt lists its accepted answers grouped by seeded rarity tier:
 //   1 Checkdown (everyone says it) -> 5 Hail Mary (almost nobody says it)
@@ -350,6 +351,7 @@ export const BATCHES: PromptDef[][] = [
   liveFrom('2026-11-04', BATCH_3),
   liveFrom('2026-11-06', BATCH_4),
   liveFrom('2026-11-07', BATCH_5),
+  liveFrom('2026-11-08', BATCH_6),
 ]
 
 export const PROMPTS: PromptDef[] = BATCHES.flat()
